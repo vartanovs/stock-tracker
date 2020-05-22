@@ -23,6 +23,7 @@
   "homepage": "https://github.com/vartanovs/stock-tracker#readme",
   "dependencies": {
     "csv-parser": "2.3.2",
+    "dotenv": "8.2.0",
     "node-fetch": "2.6.0"
   },
   "devDependencies": {
