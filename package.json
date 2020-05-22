@@ -1,0 +1,35 @@
+{
+  "name": "stock-tracker",
+  "version": "1.0.0",
+  "description": "utility to pull information for a collection of equities",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vartanovs/stock-tracker.git"
+  },
+  "keywords": [
+    "stock",
+    "typescript"
+  ],
+  "author": "Serge Vartanov <vartanov.s@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vartanovs/stock-tracker/issues"
+  },
+  "homepage": "https://github.com/vartanovs/stock-tracker#readme",
+  "dependencies": {
+    "csv-parser": "2.3.2",
+    "node-fetch": "2.6.0"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "2.5.7",
+    "eslint": "7.0.0",
+    "eslint-config-vartanovs-ts": "0.4.0",
+    "ts-node": "8.10.1",
+    "typescript": "3.9.3"
+  }
+}
