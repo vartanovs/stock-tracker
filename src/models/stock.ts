@@ -22,7 +22,7 @@ const stock = {
       stocks.push(data);
     };
 
-    return new Promise((resolve, reject) => {
+    return new Promise<Stock[]>((resolve, reject) => {
       fs.createReadStream(PATH_TO_STOCK_LIST_CSV as string)
         .pipe(csvParser())
         .on('data', addToStockList)
