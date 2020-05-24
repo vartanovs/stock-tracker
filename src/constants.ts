@@ -6,7 +6,7 @@ export const MODELING_PREP_STOCK_CHUNK_SIZE = 3;
 export const POSTGRES_SLEEP_TIMEOUT_MS = 50;
 
 // Default control flags
-export const UPDATE_INCOME_STATEMENTS = true;
+export const UPDATE_INCOME_STATEMENTS = false;
 export const UPDATE_PRICES = true;
 export const UPDATE_STOCK_LIST = false;
 

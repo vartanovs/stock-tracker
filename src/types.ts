@@ -54,6 +54,42 @@ export interface IncomeStatementPayload {
   net_profit_margin: string;
 }
 
+export interface IncomeStatement {
+  symbol: string;
+  date: Date;
+  revenue: number;
+  revenueGrowth: number;
+  costOfRevenue: number;
+  grossProfit: number;
+  rdExpense: number;
+  sgaExpense: number;
+  operatingExpense: number;
+  operatingIncome: number;
+  interestExpense: number;
+  ebt: number;
+  incomeTaxExpense: number;
+  netIncomeNonControlling: number;
+  netIncomeDiscontinued: number;
+  netIncome: number;
+  preferredDividends: number;
+  netIncomeCom: number;
+  eps: number;
+  epsDiluted: number;
+  sharesOutstanding: number;
+  sharesOutstandingDiluted: number;
+  dividendPerShare: number;
+  grossMargin: number;
+  ebitdaMargin: number;
+  ebitMargin: number;
+  profitMargin: number;
+  freeCashFlowMargin: number;
+  ebitda: number;
+  ebit: number;
+  consolidatedIncome: number;
+  ebtMargin: number;
+  netProfitMargin: number;
+}
+
 export interface ModelingPrepIncomeStatements {
   'symbol': string;
   'financials': ModelingPrepIncomeStatement[];
