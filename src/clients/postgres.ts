@@ -40,7 +40,7 @@ class PostgresClient {
     this.pool = undefined;
   }
 
-  async query(query: string, values: unknown[]) {
+  async query(query: string, values?: unknown[]) {
     if (!this.pool) return console.log('Cannot query postgres without connecting to pool. Try client.connect()');
 
     try {

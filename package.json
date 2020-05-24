@@ -24,10 +24,14 @@
   "dependencies": {
     "csv-parser": "2.3.2",
     "dotenv": "8.2.0",
-    "node-fetch": "2.6.0"
+    "humps": "2.0.1",
+    "node-fetch": "2.6.0",
+    "pg": "8.2.1"
   },
   "devDependencies": {
+    "@types/humps": "2.0.0",
     "@types/node-fetch": "2.5.7",
+    "@types/pg": "7.14.3",
     "eslint": "7.0.0",
     "eslint-config-vartanovs-ts": "0.4.0",
     "ts-node": "8.10.1",
