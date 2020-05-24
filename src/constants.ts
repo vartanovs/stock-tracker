@@ -1,11 +1,12 @@
 import type { ModelingPrepIncomeStatementKey, IncomeStatementKey } from './types';
 
 export const FETCH_SLEEP_TIMEOUT_MS = 50;
+export const FINANCIAL_STATEMENTS_START_YEAR = 2015;
 export const MODELING_PREP_STOCK_CHUNK_SIZE = 3;
 export const POSTGRES_SLEEP_TIMEOUT_MS = 50;
 
 // Default control flags
-export const UPDATE_INCOME_STATEMENTS = false;
+export const UPDATE_INCOME_STATEMENTS = true;
 export const UPDATE_PRICES = true;
 export const UPDATE_STOCK_LIST = false;
 

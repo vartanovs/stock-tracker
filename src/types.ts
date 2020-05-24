@@ -16,42 +16,42 @@ export interface ModelingPrepFinancialsResponse {
 
 // Modeling Prep Income Statement
 export type ModelingPrepIncomeStatementKey = keyof ModelingPrepIncomeStatement;
-export type IncomeStatementKey = keyof IncomeStatement;
+export type IncomeStatementKey = keyof IncomeStatementPayload;
 
-export interface IncomeStatement {
+export interface IncomeStatementPayload {
   symbol: string;
   date: string;
-  revenue: number;
-  revenue_growth: number;
-  cost_of_revenue: number;
-  gross_profit: number;
-  rd_expense: number;
-  sga_expense: number;
-  operating_expense: number;
-  operating_income: number;
-  interest_expense: number;
-  ebt: number;
-  income_tax_expense: number;
-  net_income_non_controlling: number;
-  net_income_discontinued: number;
-  net_income: number;
-  preferred_dividends: number;
-  net_income_com: number;
-  eps: number;
-  eps_diluted: number;
-  shares_outstanding: number;
-  shares_outstanding_diluted: number;
-  dividend_per_share: number;
-  gross_margin: number;
-  ebitda_margin: number;
-  ebit_margin: number;
-  profit_margin: number;
-  free_cash_flow_margin: number;
-  ebitda: number;
-  ebit: number;
-  consolidated_income: number;
-  ebt_margin: number;
-  net_profit_margin: number;
+  revenue: string;
+  revenue_growth: string;
+  cost_of_revenue: string;
+  gross_profit: string;
+  rd_expense: string;
+  sga_expense: string;
+  operating_expense: string;
+  operating_income: string;
+  interest_expense: string;
+  ebt: string;
+  income_tax_expense: string;
+  net_income_non_controlling: string;
+  net_income_discontinued: string;
+  net_income: string;
+  preferred_dividends: string;
+  net_income_com: string;
+  eps: string;
+  eps_diluted: string;
+  shares_outstanding: string;
+  shares_outstanding_diluted: string;
+  dividend_per_share: string;
+  gross_margin: string;
+  ebitda_margin: string;
+  ebit_margin: string;
+  profit_margin: string;
+  free_cash_flow_margin: string;
+  ebitda: string;
+  ebit: string;
+  consolidated_income: string;
+  ebt_margin: string;
+  net_profit_margin: string;
 }
 
 export interface ModelingPrepIncomeStatements {
