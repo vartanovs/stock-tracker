@@ -5,7 +5,7 @@ import { FETCH_SLEEP_TIMEOUT_MS, FINANCIAL_STATEMENTS_START_YEAR } from '../cons
 import { chunkList, sleep } from '../utils';
 import { formatModelingPrepIncomeStatement } from '../utils/modeling_prep';
 
-import type { ModelingPrepIncomeStatements, ModelingPrepFinancialsResponse, Stock, IncomeStatementPayload } from '../types';
+import type { ModelingPrepIncomeStatements, ModelingPrepFinancialsResponse, FullIncomeStatementPayload } from '../types';
 
 dotenv.config();
 
@@ -19,8 +19,8 @@ class ModelingPrepClient {
   }
 
   // Given a raw API response, return formatted income statements since START_YEAR
-  private static formatIncomeStatements(financialStatementList: ModelingPrepIncomeStatements[]) {
-    let incomeStatements: IncomeStatementPayload[] = [];
+  private static formatRecentIncomeStatements(financialStatementList: ModelingPrepIncomeStatements[]) {
+    let incomeStatements: FullIncomeStatementPayload[] = [];
 
     financialStatementList.forEach((financialStatement) => {
       const { symbol, financials } = financialStatement;
@@ -34,14 +34,13 @@ class ModelingPrepClient {
     return incomeStatements;
   }
 
-  public async getIncomeStatements(stocks: Stock[]) {
-    const stockChunks = chunkList(stocks); // API limits calls to 3 stock symbols at a time
-    let incomeStatements: IncomeStatementPayload[] = [];
+  public async getIncomeStatements(equities: string[]) {
+    const equitySymbolChunks = chunkList(equities); // API limits calls to 3 stock symbols at a time
+    let incomeStatements: FullIncomeStatementPayload[] = [];
 
-    for (let i = 0; i < stockChunks.length; i += 1) {
-      const currentChunk = stockChunks[i];
-      const stockSymbols = currentChunk.map((stock) => stock.symbol);
-      const uri = `${this.host}${this.endpoints.incomeStatement}${stockSymbols.join(',')}?period=quarter&apikey=${this.apiKey}`;
+    for (let i = 0; i < equitySymbolChunks.length; i += 1) {
+      const currentChunk = equitySymbolChunks[i];
+      const uri = `${this.host}${this.endpoints.incomeStatement}${currentChunk.join(',')}?period=quarter&apikey=${this.apiKey}`;
 
       let apiResponse: ModelingPrepFinancialsResponse;
       try {
@@ -56,15 +55,15 @@ class ModelingPrepClient {
           const response = await fetch(uri); // eslint-disable-line
           apiResponse = await response.json(); // eslint-disable-line
         } catch (err2) {
-          console.warn(`Unable to get financials for ${stockSymbols}`); // eslint-disable-line
+          console.warn(`Unable to get financials for ${currentChunk}`); // eslint-disable-line
           return [];
         }
       }
 
       const { financialStatementList } = apiResponse;
-      let formattedIncomeStatements: IncomeStatementPayload[] = [];
+      let formattedIncomeStatements: FullIncomeStatementPayload[] = [];
       if (Array.isArray(financialStatementList)) {
-        formattedIncomeStatements = ModelingPrepClient.formatIncomeStatements(financialStatementList);
+        formattedIncomeStatements = ModelingPrepClient.formatRecentIncomeStatements(financialStatementList);
       }
 
       incomeStatements = [...incomeStatements, ...formattedIncomeStatements];
