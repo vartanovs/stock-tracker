@@ -16,9 +16,9 @@ export interface ModelingPrepFinancialsResponse {
 
 // Modeling Prep Income Statement
 export type ModelingPrepIncomeStatementKey = keyof ModelingPrepIncomeStatement;
-export type IncomeStatementKey = keyof IncomeStatementPayload;
+export type IncomeStatementKey = keyof FullIncomeStatementPayload;
 
-export interface IncomeStatementPayload {
+export interface FullIncomeStatementPayload {
   symbol: string;
   date: string;
   revenue: string;
@@ -54,7 +54,7 @@ export interface IncomeStatementPayload {
   net_profit_margin: string;
 }
 
-export interface IncomeStatement {
+export interface FullIncomeStatement {
   symbol: string;
   date: Date;
   revenue: number;
@@ -89,6 +89,12 @@ export interface IncomeStatement {
   ebtMargin: number;
   netProfitMargin: number;
 }
+
+export type IncomeStatementPayload =
+  Pick<FullIncomeStatementPayload, 'symbol' | 'date' | 'revenue' | 'gross_profit' | 'operating_income' | 'net_income_com'>;
+
+export type IncomeStatement =
+  Pick<FullIncomeStatement, 'symbol' | 'date' | 'revenue' | 'grossProfit' | 'operatingIncome' | 'netIncomeCom'>;
 
 export interface ModelingPrepIncomeStatements {
   'symbol': string;
@@ -128,4 +134,40 @@ export interface ModelingPrepIncomeStatement {
   'Consolidated Income': string;
   'Earnings Before Tax Margin': string;
   'Net Profit Margin': string;
+}
+
+export interface RecentFinancialsPayload extends StockPayload {
+  revenue_8?: number;
+  revenue_7?: number;
+  revenue_6?: number;
+  revenue_5?: number;
+  revenue_4?: number;
+  revenue_3?: number;
+  revenue_2?: number;
+  revenue_1?: number;
+  gross_profit_8?: number;
+  gross_profit_7?: number;
+  gross_profit_6?: number;
+  gross_profit_5?: number;
+  gross_profit_4?: number;
+  gross_profit_3?: number;
+  gross_profit_2?: number;
+  gross_profit_1?: number;
+  op_income_8?: number;
+  op_income_7?: number;
+  op_income_6?: number;
+  op_income_5?: number;
+  op_income_4?: number;
+  op_income_3?: number;
+  op_income_2?: number;
+  op_income_1?: number;
+  net_income_8?: number;
+  net_income_7?: number;
+  net_income_6?: number;
+  net_income_5?: number;
+  net_income_4?: number;
+  net_income_3?: number;
+  net_income_2?: number;
+  net_income_1?: number;
+  [key: string]: number | string | undefined;
 }

@@ -2,6 +2,7 @@ import type { ModelingPrepIncomeStatementKey, IncomeStatementKey } from './types
 
 export const FETCH_SLEEP_TIMEOUT_MS = 50;
 export const FINANCIAL_STATEMENTS_START_YEAR = 2015;
+export const FINANCIAL_STATEMENTS_COUNT = 8;
 export const MODELING_PREP_STOCK_CHUNK_SIZE = 3;
 export const POSTGRES_SLEEP_TIMEOUT_MS = 50;
 
@@ -9,6 +10,17 @@ export const POSTGRES_SLEEP_TIMEOUT_MS = 50;
 export const UPDATE_INCOME_STATEMENTS = false;
 export const UPDATE_PRICES = true;
 export const UPDATE_STOCK_LIST = false;
+
+// CSV and postgres table headers
+export const RECENT_FINANCIALS_HEADERS = [
+  'exchange_type', 'symbol',
+  'revenue_8', 'revenue_7', 'revenue_6', 'revenue_5', 'revenue_4', 'revenue_3', 'revenue_2', 'revenue_1',
+  'gross_profit_8', 'gross_profit_7', 'gross_profit_6', 'gross_profit_5', 'gross_profit_4', 'gross_profit_3', 'gross_profit_2', 'gross_profit_1',
+  'op_income_8', 'op_income_7', 'op_income_6', 'op_income_5', 'op_income_4', 'op_income_3', 'op_income_2', 'op_income_1',
+  'net_income_8', 'net_income_7', 'net_income_6', 'net_income_5', 'net_income_4', 'net_income_3', 'net_income_2', 'net_income_1',
+];
+
+export const STOCK_HEADERS = ['exchange_type', 'symbol'];
 
 // Modeling Prep API <> Income Statement
 export const modelingPrepKeysToIncomeStatementDict: Record<ModelingPrepIncomeStatementKey, IncomeStatementKey> = {
