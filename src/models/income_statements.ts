@@ -7,34 +7,35 @@ import ModelingPrepClient from '../clients/modeling_prep';
 import postgresClient from '../clients/postgres';
 
 import type { QueryResult } from 'pg';
-import type { IncomeStatementPayload, Stock } from '../types';
+import type { FullIncomeStatementPayload, IncomeStatementPayload, IncomeStatement } from '../types';
 
 const modelingPrepClient = new ModelingPrepClient();
 
 const incomeStatementsModel = {
-  async readAll(stocks: Stock[]) {
-    if (UPDATE_INCOME_STATEMENTS) await this.seedFromAPI(stocks);
+  async readAll(equities: string[]) {
+    if (UPDATE_INCOME_STATEMENTS) await this.seedFromAPI(equities);
 
-    // Retrieve most recent X income statements
+    // Retrieve key fields from most recent income statements
     const readAllQuery = `
-      SELECT * FROM
+      SELECT symbol, date, revenue, gross_profit, operating_income, net_income_com FROM
         (
-          SELECT *, rank() OVER (PARTITION BY symbol ORDER BY DATE DESC)
+          SELECT symbol, date, revenue, gross_profit, operating_income, net_income_com, rank() OVER (PARTITION BY symbol ORDER BY DATE DESC)
           FROM income_statements
         ) income_statements_ordered_by_date
       WHERE RANK <= ${FINANCIAL_STATEMENTS_COUNT}
+      ORDER BY symbol, rank
     `;
 
     await postgresClient.connect();
     const response = await postgresClient.query(readAllQuery) as QueryResult<IncomeStatementPayload>;
     postgresClient.end();
-    return camelizeKeys(response.rows) as Stock[];
+    return camelizeKeys(response.rows) as IncomeStatement[];
   },
 
-  async seedFromAPI(stocks: Stock[]) {
-    const incomeStatements = await modelingPrepClient.getIncomeStatements(stocks);
+  async seedFromAPI(equities: string[]) {
+    const incomeStatements = await modelingPrepClient.getIncomeStatements(equities);
 
-    type IncomeStatementKey = keyof IncomeStatementPayload;
+    type IncomeStatementKey = keyof FullIncomeStatementPayload;
     const incomeStatementKeys = ['symbol', ...Object.keys(incomeStatementKeysToModelingPrepDict)] as IncomeStatementKey[];
     const incomeStatementIndexes = incomeStatementKeys.map((_, i) => `$${i + 1}`);
 
