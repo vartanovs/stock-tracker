@@ -1,7 +1,7 @@
 import { roundMillion, roundRatio } from '.';
 import { incomeStatementKeysToModelingPrepDict } from '../constants';
 
-import type { IncomeStatementKey, IncomeStatementPayload, ModelingPrepIncomeStatement } from '../types';
+import type { IncomeStatementKey, FullIncomeStatementPayload, ModelingPrepIncomeStatement } from '../types';
 
 export const formatIncomeStatementValue = (incomeStatementKey: IncomeStatementKey, unformattedValue: string) => {
   const LARGE_NUMBERS: IncomeStatementKey[] = [
@@ -48,7 +48,7 @@ export const formatIncomeStatementValue = (incomeStatementKey: IncomeStatementKe
 
 export const formatModelingPrepIncomeStatement = (modelingPrepIncomeStatement: ModelingPrepIncomeStatement, symbol: string) => {
   // Convert from Modeling Prep keys to postgres snake_case keys
-  const incomeStatementPayload: IncomeStatementPayload = {
+  const incomeStatementPayload: FullIncomeStatementPayload = {
     symbol,
     date: modelingPrepIncomeStatement.date,
     revenue: modelingPrepIncomeStatement[incomeStatementKeysToModelingPrepDict.revenue],

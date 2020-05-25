@@ -22,7 +22,7 @@ class CSVClient {
   public writeCSV<T extends Record<string, number | string | undefined>>(dataSet: T[]) {
     const writeStream = fs.createWriteStream(this.filePath);
 
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       try {
         writeStream.write(`${this.headers.join(',')}\n`);
 
