@@ -1,7 +1,14 @@
 import { roundMillion, roundRatio } from '.';
-import { incomeStatementKeysToModelingPrepDict } from '../constants';
+import { incomeStatementKeysToModelingPrepDict, QUARTERLY_STOCK_PRICE_DATES } from '../constants';
 
-import type { IncomeStatementKey, FullIncomeStatementPayload, ModelingPrepIncomeStatement } from '../types';
+import type {
+  FullIncomeStatementPayload,
+  IncomeStatementKey,
+  ModelingPrepHistoricPrice,
+  ModelingPrepIncomeStatement,
+  StockPricePayload,
+  ModelingPrepHistoricPrices,
+} from '../types';
 
 export const formatIncomeStatementValue = (incomeStatementKey: IncomeStatementKey, unformattedValue: string) => {
   const LARGE_NUMBERS: IncomeStatementKey[] = [
@@ -44,6 +51,19 @@ export const formatIncomeStatementValue = (incomeStatementKey: IncomeStatementKe
   if (LARGE_NUMBERS.includes(incomeStatementKey)) return roundMillion(unformattedValue);
   if (RATIOS_AND_MARGINS.includes(incomeStatementKey)) return roundRatio(unformattedValue);
   throw new Error(`Unexpected income statement key ${incomeStatementKey} cannot be formatted`);
+};
+
+export const formatModelingPrepHistoricStockPrice = (modelingPrepHistoricStockPrice: ModelingPrepHistoricPrice, symbol: string) => {
+  const { date, high, low } = modelingPrepHistoricStockPrice;
+  return { symbol, date, high, low } as StockPricePayload;
+};
+
+export const formatModelingPrepHistoricStockPrices = (historicalStockStatement: ModelingPrepHistoricPrices) => {
+  const { symbol, historical } = historicalStockStatement;
+  if (!symbol || !historical) return [];
+  return historical
+    .filter(({ date }) => QUARTERLY_STOCK_PRICE_DATES.includes(date))
+    .map((historicStockPrice) => formatModelingPrepHistoricStockPrice(historicStockPrice, symbol));
 };
 
 export const formatModelingPrepIncomeStatement = (modelingPrepIncomeStatement: ModelingPrepIncomeStatement, symbol: string) => {

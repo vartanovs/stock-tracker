@@ -1,6 +1,6 @@
-import { MODELING_PREP_STOCK_CHUNK_SIZE } from '../constants';
+import { MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE } from '../constants';
 
-export const chunkList = <T>(list: T[], chunkSize = MODELING_PREP_STOCK_CHUNK_SIZE) => {
+export const chunkList = <T>(list: T[], chunkSize = MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE) => {
   const chunkedList: T[][] = [];
   while (list.length) {
     chunkedList.push(list.splice(0, chunkSize));
