@@ -10,6 +10,38 @@ export interface StockPayload {
   symbol: string;
 }
 
+export interface ModelingPrepHistoricPriceResponse {
+  historicalStockList: ModelingPrepHistoricPrices[];
+}
+
+export interface ModelingPrepHistoricPrices {
+  symbol: string;
+  historical: ModelingPrepHistoricPrice[];
+}
+
+export interface ModelingPrepHistoricPrice {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  adjClose: number;
+  volume: number;
+  unadjustedVolume: number;
+  change: number;
+  changePercent: number;
+  vwap: number;
+  label: string;
+  changeOverTime: number;
+}
+
+export type StockPricePayloadKey = keyof StockPricePayload;
+export interface StockPricePayload extends StockPayload {
+  date: string;
+  high: number;
+  low: number;
+}
+
 export interface ModelingPrepFinancialsResponse {
   financialStatementList: ModelingPrepIncomeStatements[];
 }
