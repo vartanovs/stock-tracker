@@ -1,13 +1,15 @@
-import type { ModelingPrepIncomeStatementKey, IncomeStatementKey } from './types';
+import type { ModelingPrepIncomeStatementKey, IncomeStatementKey, StockPricePayloadKey } from './types';
 
 export const FETCH_SLEEP_TIMEOUT_MS = 50;
 export const FINANCIAL_STATEMENTS_START_YEAR = 2015;
 export const FINANCIAL_STATEMENTS_COUNT = 8;
-export const MODELING_PREP_STOCK_CHUNK_SIZE = 3;
+export const MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE = 3;
+export const MODELING_PREP_HISTORIC_PRICES_CHUNK_SIZE = 5;
 export const POSTGRES_SLEEP_TIMEOUT_MS = 50;
 
 // Default control flags
 export const UPDATE_INCOME_STATEMENTS = false;
+export const UPDATE_HISTORIC_STOCK_PRICES = false;
 export const UPDATE_PRICES = true;
 export const UPDATE_STOCK_LIST = false;
 
@@ -21,6 +23,20 @@ export const RECENT_FINANCIALS_HEADERS = [
 ];
 
 export const STOCK_HEADERS = ['exchange_type', 'symbol'];
+
+export const STOCK_PRICE_HEADERS: StockPricePayloadKey[] = ['exchange_type', 'symbol', 'date', 'high', 'low'];
+
+// Historic stock prices
+export const HISTROIC_PRICES_FROM_DATE = '2020-04-01';
+
+export const QUARTERLY_STOCK_PRICE_DATES = [
+  '2020-04-01', '2020-01-02',
+  '2019-10-01', '2019-07-01', '2019-04-01', '2019-01-02',
+  '2018-10-01', '2018-07-02', '2018-04-02', '2018-01-02',
+  '2017-10-02', '2017-07-03', '2017-04-03', '2017-01-03',
+  '2016-10-03', '2016-07-01', '2016-04-01', '2016-01-04',
+  '2015-10-01', '2015-07-01', '2015-04-01', '2015-01-02',
+];
 
 // Modeling Prep API <> Income Statement
 export const modelingPrepKeysToIncomeStatementDict: Record<ModelingPrepIncomeStatementKey, IncomeStatementKey> = {
