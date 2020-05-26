@@ -1,11 +1,21 @@
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 
-import { FETCH_SLEEP_TIMEOUT_MS, FINANCIAL_STATEMENTS_START_YEAR } from '../constants';
-import { chunkList, sleep } from '../utils';
-import { formatModelingPrepIncomeStatement } from '../utils/modeling_prep';
+import {
+  FETCH_SLEEP_TIMEOUT_MS,
+  FINANCIAL_STATEMENTS_START_YEAR,
+  HISTROIC_PRICES_FROM_DATE,
+  MODELING_PREP_HISTORIC_PRICES_CHUNK_SIZE,
+  MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE,
+} from '../constants';
 
-import type { ModelingPrepIncomeStatements, ModelingPrepFinancialsResponse, FullIncomeStatementPayload } from '../types';
+import { chunkList, sleep } from '../utils';
+import {
+  formatModelingPrepHistoricStockPrices,
+  formatModelingPrepIncomeStatement,
+} from '../utils/modeling_prep';
+
+import type { ModelingPrepIncomeStatements, ModelingPrepFinancialsResponse, FullIncomeStatementPayload, Stock, ModelingPrepHistoricPriceResponse, ModelingPrepHistoricPrices, StockPricePayload } from '../types';
 
 dotenv.config();
 
@@ -15,7 +25,21 @@ class ModelingPrepClient {
     private endpoints: Record<string, string> = {},
     private host = 'https://financialmodelingprep.com/api/v3/'
   ) {
+    this.endpoints.historicPrice = 'historical-price-full/';
     this.endpoints.incomeStatement =  'financials/income-statement/';
+  }
+
+  // Given a raw API response, return quarterly formatted historic stock prices
+  private static formatHistoricStockPrices(historicalStockList: ModelingPrepHistoricPrices[]) {
+    let historicStockPrices: StockPricePayload[] = [];
+
+    historicalStockList
+      .map(formatModelingPrepHistoricStockPrices)
+      .forEach((formattedStockPricePayloads) => {
+        historicStockPrices = [...historicStockPrices, ...formattedStockPricePayloads];
+      });
+
+    return historicStockPrices;
   }
 
   // Given a raw API response, return formatted income statements since START_YEAR
@@ -35,7 +59,7 @@ class ModelingPrepClient {
   }
 
   public async getIncomeStatements(equities: string[]) {
-    const equitySymbolChunks = chunkList(equities); // API limits calls to 3 stock symbols at a time
+    const equitySymbolChunks = chunkList(equities, MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE); // API limits calls to 3 stock symbols at a time
     let incomeStatements: FullIncomeStatementPayload[] = [];
 
     for (let i = 0; i < equitySymbolChunks.length; i += 1) {
@@ -70,6 +94,85 @@ class ModelingPrepClient {
     }
 
     return incomeStatements;
+  }
+
+  public async getHistoricStockPrices(stocks: Stock[]) {
+    const indexes = stocks.filter(({ exchangeType }) => exchangeType === 'index');
+
+    let historicStockPrices: StockPricePayload[] = [];
+
+    for (let i = 0; i < indexes.length; i += 1) {
+      const { symbol: indexSymbol } = indexes[i];
+      const uri = `${this.host}${this.endpoints.historicPrice}${indexSymbol}?from=${HISTROIC_PRICES_FROM_DATE}&apikey=${this.apiKey}`;
+
+      let apiResponse: ModelingPrepHistoricPrices;
+      try {
+        await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+        console.log(`Fetching historic prices from: ${uri}`); // eslint-disable-line
+        const rawResponse = await fetch(uri); // eslint-disable-line
+        apiResponse = await rawResponse.json() as ModelingPrepHistoricPrices; // eslint-disable-line
+      } catch (err) {
+        try {
+          await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+          console.warn('Fetch Error! Retrying', err); // eslint-disable-line
+          const response = await fetch(uri); // eslint-disable-line
+          apiResponse = await response.json(); // eslint-disable-line
+        } catch (err2) {
+          console.warn(`Unable to get financials for ${indexSymbol}`); // eslint-disable-line
+          return [];
+        }
+      }
+
+      const formattedHistoricalIndexPrices = formatModelingPrepHistoricStockPrices(apiResponse);
+      historicStockPrices = [...historicStockPrices, ...formattedHistoricalIndexPrices];
+    }
+
+    const equities = stocks
+      .filter(({ exchangeType }) => exchangeType === 'nyse' || exchangeType === 'nasdaq')
+      .map(({ symbol }) => symbol);
+
+    const equitySymbolChunks = chunkList(equities, MODELING_PREP_HISTORIC_PRICES_CHUNK_SIZE); // API limits calls to 5 stock symbols at a time
+
+    for (let i = 0; i < equitySymbolChunks.length; i += 1) {
+      const currentChunk = equitySymbolChunks[i];
+      const uri = `${this.host}${this.endpoints.historicPrice}${currentChunk.join(',')}?from=${HISTROIC_PRICES_FROM_DATE}&apikey=${this.apiKey}`;
+
+      let apiResponse: ModelingPrepHistoricPriceResponse;
+      try {
+        await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+        console.log(`Fetching historic prices from: ${uri}`); // eslint-disable-line
+        const rawResponse = await fetch(uri); // eslint-disable-line
+        apiResponse = await rawResponse.json() as ModelingPrepHistoricPriceResponse; // eslint-disable-line
+      } catch (err) {
+        try {
+          await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+          console.warn('Fetch Error! Retrying', err); // eslint-disable-line
+          const response = await fetch(uri); // eslint-disable-line
+          apiResponse = await response.json(); // eslint-disable-line
+        } catch (err2) {
+          console.warn(`Unable to get financials for ${currentChunk}`); // eslint-disable-line
+          return [];
+        }
+      }
+
+      const { historicalStockList } = apiResponse;
+      let formattedHistoricStockPrices: StockPricePayload[] = [];
+      if (Array.isArray(historicalStockList)) {
+        formattedHistoricStockPrices = ModelingPrepClient.formatHistoricStockPrices(historicalStockList);
+      }
+
+      historicStockPrices = [...historicStockPrices, ...formattedHistoricStockPrices];
+    }
+
+    // Add exchange_type to each historical stock price
+    const historicalStockPricesWithExchangeType: StockPricePayload[] = historicStockPrices.map(
+      (historicStockPrice) => {
+        const { exchangeType } = stocks.find(({ symbol }) => historicStockPrice.symbol === symbol)!;
+        return { ...historicStockPrice, exchange_type: exchangeType };
+      }
+    );
+
+    return historicalStockPricesWithExchangeType;
   }
 }
 
