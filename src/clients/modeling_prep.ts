@@ -1,21 +1,21 @@
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 
-import {
-  FETCH_SLEEP_TIMEOUT_MS,
-  FINANCIAL_STATEMENTS_START_YEAR,
-  HISTROIC_PRICES_FROM_DATE,
-  MODELING_PREP_HISTORIC_PRICES_CHUNK_SIZE,
-  MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE,
-} from '../constants';
+import { FETCH_SLEEP_TIMEOUT_MS, MODELING_PREP_CURRENT_PRICES_CHUNK_SIZE, MODELING_PREP_HISTORIC_PRICES_CHUNK_SIZE, MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE } from '../constants/configs';
+import { FINANCIAL_STATEMENTS_START_YEAR, HISTROIC_PRICES_FROM_DATE } from '../constants/dates';
 
-import { chunkList, sleep } from '../utils';
-import {
-  formatModelingPrepHistoricStockPrices,
-  formatModelingPrepIncomeStatement,
-} from '../utils/modeling_prep';
+import { chunkList, sleep, roundMillion, roundRatio } from '../utils';
+import { formatModelingPrepHistoricStockPrices, formatModelingPrepIncomeStatement } from '../utils/modeling_prep';
 
-import type { ModelingPrepIncomeStatements, ModelingPrepFinancialsResponse, FullIncomeStatementPayload, Stock, ModelingPrepHistoricPriceResponse, ModelingPrepHistoricPrices, StockPricePayload } from '../types';
+import type { ExtendedIncomeStatementPayload, Stock, StockPricePayload, CurrentStockProfile } from '../types';
+import {
+  ModelingPrepIncomeStatements,
+  ModelingPrepFinancialsResponse,
+  ModelingPrepHistoricPriceResponse,
+  ModelingPrepHistoricPrices,
+  ModelingPrepProfile,
+  ModelingPrepQuote,
+} from '../types/modeling_prep';
 
 dotenv.config();
 
@@ -27,6 +27,20 @@ class ModelingPrepClient {
   ) {
     this.endpoints.historicPrice = 'historical-price-full/';
     this.endpoints.incomeStatement =  'financials/income-statement/';
+    this.endpoints.profile = 'profile/';
+    this.endpoints.quote = 'quote/';
+  }
+
+  // Given a raw API responses, returnformatted current stock price data
+  private static formatCurrentStockPrices(modelingPrepProfiles: ModelingPrepProfile[], equities: Stock[]): CurrentStockProfile[] {
+    return modelingPrepProfiles
+      .map(({ symbol, price, industry, sector, mktCap, lastDiv }) => {
+        const shares = Number(roundMillion(String(mktCap / price)));
+        const roundedMktCap = Number(roundMillion(String(mktCap)));
+        const roundedLastDiv = Number(roundRatio(String(lastDiv)));
+        const { exchangeType } = equities.find((equity) => equity.symbol === symbol) as Stock;
+        return { exchangeType, symbol, price, industry, sector, shares, mktCap: roundedMktCap, lastDiv: roundedLastDiv };
+      });
   }
 
   // Given a raw API response, return quarterly formatted historic stock prices
@@ -44,7 +58,7 @@ class ModelingPrepClient {
 
   // Given a raw API response, return formatted income statements since START_YEAR
   private static formatRecentIncomeStatements(financialStatementList: ModelingPrepIncomeStatements[]) {
-    let incomeStatements: FullIncomeStatementPayload[] = [];
+    let incomeStatements: ExtendedIncomeStatementPayload[] = [];
 
     financialStatementList.forEach((financialStatement) => {
       const { symbol, financials } = financialStatement;
@@ -60,7 +74,7 @@ class ModelingPrepClient {
 
   public async getIncomeStatements(equities: string[]) {
     const equitySymbolChunks = chunkList(equities, MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE); // API limits calls to 3 stock symbols at a time
-    let incomeStatements: FullIncomeStatementPayload[] = [];
+    let incomeStatements: ExtendedIncomeStatementPayload[] = [];
 
     for (let i = 0; i < equitySymbolChunks.length; i += 1) {
       const currentChunk = equitySymbolChunks[i];
@@ -85,7 +99,7 @@ class ModelingPrepClient {
       }
 
       const { financialStatementList } = apiResponse;
-      let formattedIncomeStatements: FullIncomeStatementPayload[] = [];
+      let formattedIncomeStatements: ExtendedIncomeStatementPayload[] = [];
       if (Array.isArray(financialStatementList)) {
         formattedIncomeStatements = ModelingPrepClient.formatRecentIncomeStatements(financialStatementList);
       }
@@ -94,6 +108,69 @@ class ModelingPrepClient {
     }
 
     return incomeStatements;
+  }
+
+  public async getEquityProfiles(equities: Stock[]) {
+    const equitySymbols = equities.map(({ symbol }) => symbol);
+    const equitySymbolChunks = chunkList(equitySymbols, MODELING_PREP_CURRENT_PRICES_CHUNK_SIZE);
+
+    let currentStockPrices: CurrentStockProfile[] = [];
+    for (let i = 0; i < equitySymbolChunks.length; i += 1) {
+      const currentChunk = equitySymbolChunks[i];
+      const uri = `${this.host}${this.endpoints.profile}${currentChunk.join(',')}?apikey=${this.apiKey}`;
+
+      let apiResponse: ModelingPrepProfile[];
+      try {
+        await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+        console.log(`Fetching current prices from: ${uri}`); // eslint-disable-line
+        const rawResponse = await fetch(uri); // eslint-disable-line
+        apiResponse = await rawResponse.json() as ModelingPrepProfile[]; // eslint-disable-line
+      } catch (err) {
+        try {
+          await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+          console.warn('Fetch Error! Retrying', err); // eslint-disable-line
+          const response = await fetch(uri); // eslint-disable-line
+          apiResponse = await response.json(); // eslint-disable-line
+        } catch (err2) {
+          console.warn(`Unable to get current prices for ${currentChunk}`); // eslint-disable-line
+          return [];
+        }
+      }
+
+      let formattedCurrentStockPrices: CurrentStockProfile[] = [];
+      if (Array.isArray(apiResponse)) {
+        formattedCurrentStockPrices = ModelingPrepClient.formatCurrentStockPrices(apiResponse, equities);
+      }
+
+      currentStockPrices = [...currentStockPrices, ...formattedCurrentStockPrices];
+    }
+
+    return currentStockPrices;
+  }
+
+  public async getIndexProfiles(indexSymbols: string[]): Promise<CurrentStockProfile[]> {
+    const uri = `${this.host}${this.endpoints.quote}${indexSymbols.join(',')}?apikey=${this.apiKey}`;
+
+    let apiResponse: ModelingPrepQuote[];
+    try {
+      await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+      console.log(`Fetching current index prices from: ${uri}`); // eslint-disable-line
+      const rawResponse = await fetch(uri); // eslint-disable-line
+      apiResponse = await rawResponse.json() as ModelingPrepQuote[]; // eslint-disable-line
+    } catch (err) {
+      try {
+        await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+        console.warn('Fetch Error! Retrying', err); // eslint-disable-line
+        const response = await fetch(uri); // eslint-disable-line
+        apiResponse = await response.json(); // eslint-disable-line
+      } catch (err2) {
+        console.warn('Unable to get current index prices'); // eslint-disable-line
+        return [];
+      }
+    }
+
+    return apiResponse
+      .map(({ symbol, price }) => ({ exchangeType: 'index', symbol, price, industry: 'index', sector: 'index', shares: 0, mktCap: 0, lastDiv: 0 }));
   }
 
   public async getHistoricStockPrices(stocks: Stock[]) {
@@ -164,15 +241,7 @@ class ModelingPrepClient {
       historicStockPrices = [...historicStockPrices, ...formattedHistoricStockPrices];
     }
 
-    // Add exchange_type to each historical stock price
-    const historicalStockPricesWithExchangeType: StockPricePayload[] = historicStockPrices.map(
-      (historicStockPrice) => {
-        const { exchangeType } = stocks.find(({ symbol }) => historicStockPrice.symbol === symbol)!;
-        return { ...historicStockPrice, exchange_type: exchangeType };
-      }
-    );
-
-    return historicalStockPricesWithExchangeType;
+    return historicStockPrices;
   }
 }
 
