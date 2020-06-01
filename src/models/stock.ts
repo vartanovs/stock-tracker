@@ -3,7 +3,9 @@ import { camelizeKeys } from 'humps';
 
 import CSVClient from '../clients/csv';
 import postgresClient from '../clients/postgres';
-import { POSTGRES_SLEEP_TIMEOUT_MS, STOCK_HEADERS, UPDATE_STOCK_LIST } from '../constants';
+import { POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
+import { UPDATE_STOCK_LIST } from '../constants/flags';
+import { STOCK_HEADERS } from '../constants/headers';
 import { sleep } from '../utils';
 
 import type { QueryResult } from 'pg';

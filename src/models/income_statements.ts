@@ -1,13 +1,15 @@
 import { camelizeKeys } from 'humps';
 
-import { FINANCIAL_STATEMENTS_COUNT, POSTGRES_SLEEP_TIMEOUT_MS, UPDATE_INCOME_STATEMENTS, incomeStatementKeysToModelingPrepDict } from '../constants';
+import { FINANCIAL_STATEMENTS_COUNT, POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
+import { incomeStatementKeysToModelingPrepDict } from '../constants/dicts';
+import { UPDATE_INCOME_STATEMENTS } from '../constants/flags';
 import { sleep } from '../utils';
 
 import ModelingPrepClient from '../clients/modeling_prep';
 import postgresClient from '../clients/postgres';
 
 import type { QueryResult } from 'pg';
-import type { FullIncomeStatementPayload, IncomeStatementPayload, IncomeStatement } from '../types';
+import type { ExtendedIncomeStatementPayload, IncomeStatementPayload, IncomeStatement } from '../types';
 
 const modelingPrepClient = new ModelingPrepClient();
 
@@ -35,7 +37,7 @@ const incomeStatementsModel = {
   async seedFromAPI(equities: string[]) {
     const incomeStatements = await modelingPrepClient.getIncomeStatements(equities);
 
-    type IncomeStatementKey = keyof FullIncomeStatementPayload;
+    type IncomeStatementKey = keyof ExtendedIncomeStatementPayload;
     const incomeStatementKeys = ['symbol', ...Object.keys(incomeStatementKeysToModelingPrepDict)] as IncomeStatementKey[];
     const incomeStatementIndexes = incomeStatementKeys.map((_, i) => `$${i + 1}`);
 

@@ -1,4 +1,4 @@
-import { MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE } from '../constants';
+import { MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE } from '../constants/configs';
 
 export const chunkList = <T>(list: T[], chunkSize = MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE) => {
   const chunkedList: T[][] = [];
