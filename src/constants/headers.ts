@@ -3,7 +3,7 @@
 import type { HistoricStockPricesPayloadKey, RecentFinancialsPayloadKey, StockPayloadKey, StockPricePayloadKey } from '../types';
 
 export const RECENT_FINANCIALS_HEADERS: RecentFinancialsPayloadKey[] = [
-  'exchange_type', 'symbol',
+  'exchange_type', 'symbol', 'as_of',
   'revenue_8', 'revenue_7', 'revenue_6', 'revenue_5', 'revenue_4', 'revenue_3', 'revenue_2', 'revenue_1',
   'gross_profit_8', 'gross_profit_7', 'gross_profit_6', 'gross_profit_5', 'gross_profit_4', 'gross_profit_3', 'gross_profit_2', 'gross_profit_1',
   'op_income_8', 'op_income_7', 'op_income_6', 'op_income_5', 'op_income_4', 'op_income_3', 'op_income_2', 'op_income_1',

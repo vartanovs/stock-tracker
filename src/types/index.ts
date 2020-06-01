@@ -152,7 +152,8 @@ export type IncomeStatementPayload =
   Pick<ExtendedIncomeStatementPayload, 'symbol' | 'date' | 'revenue' | 'gross_profit' | 'operating_income' | 'net_income_com'>;
 
 export type RecentFinancialsPayloadKey = keyof RecentFinancialsPayload;
-export interface RecentFinancialsPayload extends StockPayload {
+export interface RecentFinancialsPayload extends StockPayload, Record<string, number | string | undefined> {
+  as_of?: string;
   revenue_8?: number;
   revenue_7?: number;
   revenue_6?: number;

@@ -1,5 +1,6 @@
 CREATE TABLE recent_financials (
     symbol VARCHAR(6),
+    as_of: DATE,
     revenue_8 DOUBLE PRECISION,
     revenue_7 DOUBLE PRECISION,
     revenue_6 DOUBLE PRECISION,

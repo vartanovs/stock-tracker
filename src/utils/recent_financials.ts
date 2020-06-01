@@ -9,10 +9,11 @@ const rekeyIncomeStatementMetrics = (incomeStatement: IncomeStatement, index: nu
 
 export const formatIncomeStatementsToRecentFinancials = (stocks: Stock[], incomeStatements: IncomeStatement[]) => {
   const recentFinancials = stocks.map(({ exchangeType, symbol }) => {
-    let recentFinancialsPayload: RecentFinancialsPayload = { exchange_type: exchangeType, symbol };
+    const stockIncomeStatements = incomeStatements.filter((incomeStatement) => incomeStatement.symbol === symbol);
+    const latestFinancialsDate = stockIncomeStatements[0] ? stockIncomeStatements[0].date.toISOString().split('T')[0] : '';
 
-    incomeStatements
-      .filter((incomeStatement) => incomeStatement.symbol === symbol)
+    let recentFinancialsPayload: RecentFinancialsPayload = { exchange_type: exchangeType, symbol, as_of: latestFinancialsDate };
+    stockIncomeStatements
       .map(rekeyIncomeStatementMetrics)
       .forEach((quarterlyIncomeStatementMetrics) => {
         recentFinancialsPayload = { ...recentFinancialsPayload, ...quarterlyIncomeStatementMetrics };
