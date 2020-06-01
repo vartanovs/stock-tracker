@@ -5,52 +5,75 @@ export interface Stock {
   symbol: string;
 }
 
+export type StockPayloadKey = keyof StockPayload;
 export interface StockPayload {
   exchange_type: ExchangeType;
   symbol: string;
 }
 
-export interface ModelingPrepHistoricPriceResponse {
-  historicalStockList: ModelingPrepHistoricPrices[];
-}
-
-export interface ModelingPrepHistoricPrices {
-  symbol: string;
-  historical: ModelingPrepHistoricPrice[];
-}
-
-export interface ModelingPrepHistoricPrice {
-  date: string;
-  open: number;
+export interface StockPrice extends Stock {
+  date: Date | string;
   high: number;
   low: number;
-  close: number;
-  adjClose: number;
-  volume: number;
-  unadjustedVolume: number;
-  change: number;
-  changePercent: number;
-  vwap: number;
-  label: string;
-  changeOverTime: number;
 }
+
+export interface CurrentStockProfile extends Stock {
+  industry: string;
+  sector: string;
+  price: number;
+  shares: number;
+  mktCap: number;
+  lastDiv: number;
+}
+
+export interface CurrentStockProfilePayload extends StockPayload {
+  industry: string;
+  sector: string;
+  price: number;
+  shares: number;
+  mkt_cap: number;
+  last_div: number;
+}
+
+export interface HistoricStockPrices {
+  symbol: string;
+  lastQtPrice: number;
+  twoQtPrice: number;
+  threeQtPrice: number;
+  lastYrPrice: number;
+  fiveQtPrice: number;
+  twoYrPrice: number;
+  fiveYrPrice: number;
+}
+
+export type HistoricStockPricesPayloadKey = keyof HistoricStockPricesPayload;
+export interface HistoricStockPricesPayload {
+  symbol: string;
+  last_qt_price: number;
+  two_qt_price: number;
+  three_qt_price: number;
+  last_yr_price: number;
+  five_qt_price: number;
+  two_yr_price: number;
+  five_yr_price: number;
+  [key: string]: number | string | undefined;
+}
+
+export interface StockProfile extends CurrentStockProfile, HistoricStockPrices {}
+
+export type StockProfilePayloadKey = keyof StockProfilePayload;
+export interface StockProfilePayload extends CurrentStockProfilePayload, HistoricStockPricesPayload {}
 
 export type StockPricePayloadKey = keyof StockPricePayload;
-export interface StockPricePayload extends StockPayload {
-  date: string;
+export interface StockPricePayload {
+  symbol: string;
+  date: Date | string;
   high: number;
   low: number;
 }
 
-export interface ModelingPrepFinancialsResponse {
-  financialStatementList: ModelingPrepIncomeStatements[];
-}
-
-// Modeling Prep Income Statement
-export type ModelingPrepIncomeStatementKey = keyof ModelingPrepIncomeStatement;
-export type IncomeStatementKey = keyof FullIncomeStatementPayload;
-
-export interface FullIncomeStatementPayload {
+export type ExtendedIncomeStatementPayloadKey = keyof ExtendedIncomeStatementPayload;
+export interface ExtendedIncomeStatementPayload {
   symbol: string;
   date: string;
   revenue: string;
@@ -86,7 +109,7 @@ export interface FullIncomeStatementPayload {
   net_profit_margin: string;
 }
 
-export interface FullIncomeStatement {
+export interface ExtendedIncomeStatement {
   symbol: string;
   date: Date;
   revenue: number;
@@ -122,52 +145,13 @@ export interface FullIncomeStatement {
   netProfitMargin: number;
 }
 
-export type IncomeStatementPayload =
-  Pick<FullIncomeStatementPayload, 'symbol' | 'date' | 'revenue' | 'gross_profit' | 'operating_income' | 'net_income_com'>;
-
 export type IncomeStatement =
-  Pick<FullIncomeStatement, 'symbol' | 'date' | 'revenue' | 'grossProfit' | 'operatingIncome' | 'netIncomeCom'>;
+  Pick<ExtendedIncomeStatement, 'symbol' | 'date' | 'revenue' | 'grossProfit' | 'operatingIncome' | 'netIncomeCom'>;
 
-export interface ModelingPrepIncomeStatements {
-  'symbol': string;
-  'financials': ModelingPrepIncomeStatement[];
-}
+export type IncomeStatementPayload =
+  Pick<ExtendedIncomeStatementPayload, 'symbol' | 'date' | 'revenue' | 'gross_profit' | 'operating_income' | 'net_income_com'>;
 
-export interface ModelingPrepIncomeStatement {
-  'date': string;
-  'Revenue': string;
-  'Revenue Growth': string;
-  'Cost of Revenue': string;
-  'Gross Profit': string;
-  'R&D Expenses': string;
-  'SG&A Expense': string;
-  'Operating Expenses': string;
-  'Operating Income': string;
-  'Interest Expense': string;
-  'Earnings before Tax': string;
-  'Income Tax Expense': string;
-  'Net Income - Non-Controlling int': string;
-  'Net Income - Discontinued ops': string;
-  'Net Income': string;
-  'Preferred Dividends': string;
-  'Net Income Com': string;
-  'EPS': string;
-  'EPS Diluted': string;
-  'Weighted Average Shs Out': string;
-  'Weighted Average Shs Out (Dil)': string;
-  'Dividend per Share': string;
-  'Gross Margin': string;
-  'EBITDA Margin': string;
-  'EBIT Margin': string;
-  'Profit Margin': string;
-  'Free Cash Flow margin': string;
-  'EBITDA': string;
-  'EBIT': string;
-  'Consolidated Income': string;
-  'Earnings Before Tax Margin': string;
-  'Net Profit Margin': string;
-}
-
+export type RecentFinancialsPayloadKey = keyof RecentFinancialsPayload;
 export interface RecentFinancialsPayload extends StockPayload {
   revenue_8?: number;
   revenue_7?: number;
@@ -201,5 +185,4 @@ export interface RecentFinancialsPayload extends StockPayload {
   net_income_3?: number;
   net_income_2?: number;
   net_income_1?: number;
-  [key: string]: number | string | undefined;
 }
