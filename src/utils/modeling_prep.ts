@@ -1,17 +1,12 @@
 import { roundMillion, roundRatio } from '.';
-import { incomeStatementKeysToModelingPrepDict, QUARTERLY_STOCK_PRICE_DATES } from '../constants';
+import { QUARTERLY_STOCK_PRICE_DATES } from '../constants/dates';
+import { incomeStatementKeysToModelingPrepDict } from '../constants/dicts';
 
-import type {
-  FullIncomeStatementPayload,
-  IncomeStatementKey,
-  ModelingPrepHistoricPrice,
-  ModelingPrepIncomeStatement,
-  StockPricePayload,
-  ModelingPrepHistoricPrices,
-} from '../types';
+import type { ExtendedIncomeStatementPayload, ExtendedIncomeStatementPayloadKey, StockPricePayload } from '../types';
+import type { ModelingPrepHistoricPrice, ModelingPrepIncomeStatement, ModelingPrepHistoricPrices } from '../types/modeling_prep';
 
-export const formatIncomeStatementValue = (incomeStatementKey: IncomeStatementKey, unformattedValue: string) => {
-  const LARGE_NUMBERS: IncomeStatementKey[] = [
+export const formatIncomeStatementValue = (incomeStatementKey: ExtendedIncomeStatementPayloadKey, unformattedValue: string) => {
+  const LARGE_NUMBERS: ExtendedIncomeStatementPayloadKey[] = [
     'revenue',
     'cost_of_revenue',
     'gross_profit',
@@ -34,7 +29,7 @@ export const formatIncomeStatementValue = (incomeStatementKey: IncomeStatementKe
     'consolidated_income',
   ];
 
-  const RATIOS_AND_MARGINS: IncomeStatementKey[] = [
+  const RATIOS_AND_MARGINS: ExtendedIncomeStatementPayloadKey[] = [
     'revenue_growth',
     'eps',
     'eps_diluted',
@@ -68,7 +63,7 @@ export const formatModelingPrepHistoricStockPrices = (historicalStockStatement: 
 
 export const formatModelingPrepIncomeStatement = (modelingPrepIncomeStatement: ModelingPrepIncomeStatement, symbol: string) => {
   // Convert from Modeling Prep keys to postgres snake_case keys
-  const incomeStatementPayload: FullIncomeStatementPayload = {
+  const incomeStatementPayload: ExtendedIncomeStatementPayload = {
     symbol,
     date: modelingPrepIncomeStatement.date,
     revenue: modelingPrepIncomeStatement[incomeStatementKeysToModelingPrepDict.revenue],
@@ -105,7 +100,7 @@ export const formatModelingPrepIncomeStatement = (modelingPrepIncomeStatement: M
   };
 
   // Round large numbers to nearest million and ratios/margins to 3 decimals
-  (Object.keys(incomeStatementPayload) as IncomeStatementKey[]).forEach((incomeStatementKey) => {
+  (Object.keys(incomeStatementPayload) as ExtendedIncomeStatementPayloadKey[]).forEach((incomeStatementKey) => {
     if (['symbol', 'date'].includes(incomeStatementKey)) return; // symbol and date do not require formatting
     incomeStatementPayload[incomeStatementKey] = formatIncomeStatementValue(incomeStatementKey, incomeStatementPayload[incomeStatementKey]);
   });
