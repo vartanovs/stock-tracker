@@ -7,7 +7,7 @@ import postgresClient from '../clients/postgres';
 
 import { POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
 import { QUARTERLY_STOCK_PRICE_DATES } from '../constants/dates';
-import { UPDATE_HISTORIC_STOCK_PRICES } from '../constants/flags';
+import { UPDATE_HISTORIC_STOCK_PRICES, UPDATE_STOCK_PRICES } from '../constants/flags';
 import { STOCK_PRICE_HEADERS, STOCK_PRICES_HEADERS } from '../constants/headers';
 import { sleep } from '../utils';
 import { formatHistoricPrices } from '../utils/stock_prices';
@@ -48,6 +48,7 @@ const stockPriceModel = {
   },
 
   async getAll(stocks: Stock[]): Promise<StockProfile[]> {
+    if (!UPDATE_STOCK_PRICES) return [];
     if (UPDATE_HISTORIC_STOCK_PRICES) await this.seedFromAPI(stocks);
     const stockProfiles = await this.getCurrent(stocks);
     const historicStockPrices = await this.getHistoric(stocks);
@@ -88,6 +89,7 @@ const stockPriceModel = {
   },
 
   saveAll(stockPrices: StockProfile[]) {
+    if (!UPDATE_STOCK_PRICES) return null;
     const stockPricesPayload = (decamelizeKeys(stockPrices) as StockProfilePayload[]).sort((a, b) => a.symbol.localeCompare(b.symbol));
     const stockPricesCsvClient = new CSVClient(PATH_TO_STOCK_PRICES_CSV as string, STOCK_PRICES_HEADERS as string[]);
     return stockPricesCsvClient.writeCSV(stockPricesPayload);
