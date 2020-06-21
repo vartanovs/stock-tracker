@@ -19,7 +19,7 @@ const stock = {
   async readAll() {
     if (UPDATE_STOCK_LIST) await this.seedFromCSV();
 
-    const getAllQuery = 'SELECT exchange_type, symbol FROM stocks';
+    const getAllQuery = 'SELECT * FROM stocks';
 
     await postgresClient.connect();
     const response = await postgresClient.query(getAllQuery) as QueryResult<StockPayload>;
@@ -32,18 +32,20 @@ const stock = {
     const stocks = await stockCSVClient.readCSV();
 
     const seedQuery = `
-      INSERT INTO stocks (symbol, exchange_type)
-      VALUES ($1, $2)
+      INSERT INTO stocks (symbol, exchange_type, name)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (symbol) DO UPDATE
+      SET symbol = EXCLUDED.symbol, exchange_type = EXCLUDED.exchange_type, name = EXCLUDED.name
     `;
 
     await postgresClient.connect();
     for (let i = 0; i < stocks.length; i += 1) {
-      const { symbol, exchange_type: exchangeType } = stocks[i];
-      if (!symbol || !exchangeType) break;
+      const { symbol, exchange_type: exchangeType, name } = stocks[i];
+      if (!symbol || !exchangeType || !name) break;
 
       try {
         await sleep(POSTGRES_SLEEP_TIMEOUT_MS); // eslint-disable-line
-        await postgresClient.query(seedQuery, [symbol, exchangeType]); // eslint-disable-line
+        await postgresClient.query(seedQuery, [symbol, exchangeType, name]); // eslint-disable-line
         console.log(`Seeded ${symbol} into "stocks" postgres table`); // eslint-disable-line
       } catch (err) {
         console.error(`Could not seed ${symbol} into "stocks" postgres table`, { err }); // eslint-disable-line

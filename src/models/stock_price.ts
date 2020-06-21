@@ -62,10 +62,10 @@ const stockPriceModel = {
 
   async getCurrent(stocks: Stock[]) {
     const equities = stocks.filter(({ exchangeType }) => ['nasdaq', 'nyse'].includes(exchangeType));
-    const indexSymbols = stocks.filter(({ exchangeType }) => exchangeType === 'index').map(({ symbol }) => symbol);
+    const indexes = stocks.filter(({ exchangeType }) => exchangeType === 'index');
 
     const equityProfiles = await modelingPrepClient.getEquityProfiles(equities);
-    const indexProfiles = await modelingPrepClient.getIndexProfiles(indexSymbols);
+    const indexProfiles = await modelingPrepClient.getIndexProfiles(indexes);
     return [...indexProfiles, ...equityProfiles];
   },
 

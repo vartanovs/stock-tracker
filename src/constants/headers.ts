@@ -15,6 +15,6 @@ export const STOCK_HEADERS: StockPayloadKey[] = ['exchange_type', 'symbol'];
 export const STOCK_PRICE_HEADERS: StockPricePayloadKey[] = ['symbol', 'date', 'high', 'low'];
 
 export const STOCK_PRICES_HEADERS: HistoricStockPricesPayloadKey[] = [
-  'exchange_type', 'symbol', 'sector', 'industry', 'price', 'shares', 'mkt_cap', 'last_div',
+  'exchange_type', 'symbol', 'name', 'sector', 'industry', 'price', 'shares', 'mkt_cap', 'last_div',
   'last_qt_price', 'two_qt_price', 'three_qt_price', 'last_yr_price', 'five_qt_price', 'two_yr_price', 'five_yr_price',
 ];

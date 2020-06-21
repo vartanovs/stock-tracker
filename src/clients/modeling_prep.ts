@@ -38,8 +38,8 @@ class ModelingPrepClient {
         const shares = Number(roundMillion(String(mktCap / price)));
         const roundedMktCap = Number(roundMillion(String(mktCap)));
         const roundedLastDiv = Number(roundRatio(String(lastDiv)));
-        const { exchangeType } = equities.find((equity) => equity.symbol === symbol) as Stock;
-        return { exchangeType, symbol, price, industry, sector, shares, mktCap: roundedMktCap, lastDiv: roundedLastDiv };
+        const { exchangeType, name } = equities.find((equity) => equity.symbol === symbol) as Stock;
+        return { exchangeType, symbol, name, price, industry, sector, shares, mktCap: roundedMktCap, lastDiv: roundedLastDiv };
       });
   }
 
@@ -148,7 +148,8 @@ class ModelingPrepClient {
     return currentStockPrices;
   }
 
-  public async getIndexProfiles(indexSymbols: string[]): Promise<CurrentStockProfile[]> {
+  public async getIndexProfiles(indexes: Stock[]): Promise<CurrentStockProfile[]> {
+    const indexSymbols = indexes.map(({ symbol }) => symbol);
     const uri = `${this.host}${this.endpoints.quote}${indexSymbols.join(',')}?apikey=${this.apiKey}`;
 
     let apiResponse: ModelingPrepQuote[];
@@ -169,8 +170,13 @@ class ModelingPrepClient {
       }
     }
 
+    const [industry, sector] = ['index', 'index'];
     return apiResponse
-      .map(({ symbol, price }) => ({ exchangeType: 'index', symbol, price, industry: 'index', sector: 'index', shares: 0, mktCap: 0, lastDiv: 0 }));
+      .map(({ symbol, price }) => {
+        const currentIndex = indexes.find((inx) => inx.symbol === symbol);
+        const { exchangeType, name } = currentIndex as Stock;
+        return { exchangeType, symbol, name, price, industry, sector, shares: 0, mktCap: 0, lastDiv: 0 };
+      });
   }
 
   public async getHistoricStockPrices(stocks: Stock[]) {

@@ -3,12 +3,14 @@ export type ExchangeType = 'etf' | 'index' | 'nasdaq' | 'nyse';
 export interface Stock {
   exchangeType: ExchangeType;
   symbol: string;
+  name: string;
 }
 
 export type StockPayloadKey = keyof StockPayload;
 export interface StockPayload {
   exchange_type: ExchangeType;
   symbol: string;
+  name: string;
 }
 
 export interface StockPrice extends Stock {
