@@ -1,8 +1,11 @@
+import dotenv from 'dotenv';
 import { camelizeKeys } from 'humps';
 
+import CSVClient from '../clients/csv';
 import { FINANCIAL_STATEMENTS_COUNT, POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
 import { incomeStatementKeysToModelingPrepDict } from '../constants/dicts';
-import { UPDATE_INCOME_STATEMENTS } from '../constants/flags';
+import { UPDATE_INCOME_STATEMENTS, UPSERT_INCOME_STATEMENTS } from '../constants/flags';
+import { INCOME_STATEMENT_HEADERS } from '../constants/headers';
 import { sleep } from '../utils';
 
 import ModelingPrepClient from '../clients/modeling_prep';
@@ -11,11 +14,16 @@ import postgresClient from '../clients/postgres';
 import type { QueryResult } from 'pg';
 import type { ExtendedIncomeStatementPayload, IncomeStatementPayload, IncomeStatement } from '../types';
 
+dotenv.config();
+
+const { PATH_TO_INCOME_STATEMENT_CORRECTIONS_CSV } = process.env;
+
 const modelingPrepClient = new ModelingPrepClient();
 
 const incomeStatementsModel = {
   async readAll(equities: string[]) {
     if (UPDATE_INCOME_STATEMENTS) await this.seedFromAPI(equities);
+    if (UPSERT_INCOME_STATEMENTS) await this.seedFromCSV();
 
     // Retrieve key fields from most recent income statements
     const readAllQuery = `
@@ -56,6 +64,41 @@ const incomeStatementsModel = {
         console.log(`Seeded ${symbol} - ${date} data into "income_statement" postgres table`); // eslint-disable-line
       } catch (err) {
         console.error(`Could not seed ${symbol} into "stocks" postgres table`, { err }); // eslint-disable-line
+      }
+    }
+
+    await postgresClient.end();
+  },
+
+  async seedFromCSV() {
+    const incomeStatementCorrectionsCSVClient = new CSVClient(PATH_TO_INCOME_STATEMENT_CORRECTIONS_CSV as string, INCOME_STATEMENT_HEADERS);
+    const incomeStatementCorrections = await incomeStatementCorrectionsCSVClient.readCSV();
+
+    const upsertQuery = `
+      INSERT INTO income_statements (symbol, date, revenue, gross_profit, operating_income, net_income_com)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (symbol, date) DO UPDATE
+      SET
+        revenue = EXCLUDED.revenue,
+        gross_profit = EXCLUDED.gross_profit,
+        operating_income = EXCLUDED.operating_income,
+        net_income_com = EXCLUDED.net_income_com
+    `;
+
+    await postgresClient.connect();
+    for (let i = 0; i < incomeStatementCorrections.length; i += 1) {
+      const {
+        symbol, date, revenue,
+        gross_profit: grossProfit, operating_income: operatingIncome, net_income_com: netIncomeCom,
+      } = incomeStatementCorrections[i];
+      if (!symbol || !date || !revenue || !grossProfit || !operatingIncome || !netIncomeCom) break;
+
+      try {
+        await sleep(POSTGRES_SLEEP_TIMEOUT_MS); // eslint-disable-line
+        await postgresClient.query(upsertQuery, [symbol, date, revenue, grossProfit, operatingIncome, netIncomeCom]); // eslint-disable-line
+        console.log(`Upserted ${symbol} - ${date} into "income_statements" postgres table`); // eslint-disable-line
+      } catch (err) {
+        console.error(`Could not upsert ${symbol} - ${date} into "income_statements" postgres table`, { err }); // eslint-disable-line
       }
     }
 

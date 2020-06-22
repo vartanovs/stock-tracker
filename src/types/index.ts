@@ -150,6 +150,7 @@ export interface ExtendedIncomeStatement {
 export type IncomeStatement =
   Pick<ExtendedIncomeStatement, 'symbol' | 'date' | 'revenue' | 'grossProfit' | 'operatingIncome' | 'netIncomeCom'>;
 
+export type IncomeStatementPayloadKey = keyof IncomeStatementPayload;
 export type IncomeStatementPayload =
   Pick<ExtendedIncomeStatementPayload, 'symbol' | 'date' | 'revenue' | 'gross_profit' | 'operating_income' | 'net_income_com'>;
 
