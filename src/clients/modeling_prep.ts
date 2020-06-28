@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 
 import { FETCH_SLEEP_TIMEOUT_MS, MODELING_PREP_CURRENT_PRICES_CHUNK_SIZE, MODELING_PREP_HISTORIC_PRICES_CHUNK_SIZE, MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE } from '../constants/configs';
-import { FINANCIAL_STATEMENTS_START_YEAR, HISTROIC_PRICES_FROM_DATE } from '../constants/dates';
+import { FINANCIAL_STATEMENTS_START_YEAR, HISTORIC_PRICES_FROM_DATE } from '../constants/dates';
 
 import { chunkList, sleep, roundMillion, roundRatio } from '../utils';
 import { formatModelingPrepHistoricStockPrices, formatModelingPrepIncomeStatement } from '../utils/modeling_prep';
@@ -173,8 +173,8 @@ class ModelingPrepClient {
     const [industry, sector] = ['index', 'index'];
     return apiResponse
       .map(({ symbol, price }) => {
-        const currentIndex = indexes.find((inx) => inx.symbol === symbol);
-        const { exchangeType, name } = currentIndex as Stock;
+        const currentIndex = indexes.find((inx) => inx.symbol === symbol) ?? { exchangeType: 'index', symbol, name: 'index' };
+        const { exchangeType, name } = currentIndex;
         return { exchangeType, symbol, name, price, industry, sector, shares: 0, mktCap: 0, lastDiv: 0 };
       });
   }
@@ -186,7 +186,7 @@ class ModelingPrepClient {
 
     for (let i = 0; i < indexes.length; i += 1) {
       const { symbol: indexSymbol } = indexes[i];
-      const uri = `${this.host}${this.endpoints.historicPrice}${indexSymbol}?from=${HISTROIC_PRICES_FROM_DATE}&apikey=${this.apiKey}`;
+      const uri = `${this.host}${this.endpoints.historicPrice}${indexSymbol}?from=${HISTORIC_PRICES_FROM_DATE}&apikey=${this.apiKey}`;
 
       let apiResponse: ModelingPrepHistoricPrices;
       try {
@@ -218,7 +218,7 @@ class ModelingPrepClient {
 
     for (let i = 0; i < equitySymbolChunks.length; i += 1) {
       const currentChunk = equitySymbolChunks[i];
-      const uri = `${this.host}${this.endpoints.historicPrice}${currentChunk.join(',')}?from=${HISTROIC_PRICES_FROM_DATE}&apikey=${this.apiKey}`;
+      const uri = `${this.host}${this.endpoints.historicPrice}${currentChunk.join(',')}?from=${HISTORIC_PRICES_FROM_DATE}&apikey=${this.apiKey}`;
 
       let apiResponse: ModelingPrepHistoricPriceResponse;
       try {
