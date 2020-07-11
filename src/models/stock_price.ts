@@ -29,6 +29,12 @@ const stockPriceModel = {
     const seedQuery = `
       INSERT INTO stock_prices (${STOCK_PRICE_HEADERS.join(', ')})
       VALUES (${stockPriceIndexes.join(', ')})
+      ON CONFLICT (symbol, date) DO UPDATE
+      SET
+        symbol = EXCLUDED.symbol,
+        date = EXCLUDED.date,
+        high = EXCLUDED.high,
+        low = EXCLUDED.low
     `;
 
     await postgresClient.connect();
