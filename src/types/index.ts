@@ -44,6 +44,7 @@ export interface HistoricStockPrices {
   threeQtPrice: number;
   lastYrPrice: number;
   fiveQtPrice: number;
+  sixQtPrice: number;
   twoYrPrice: number;
   fiveYrPrice: number;
 }
@@ -56,6 +57,7 @@ export interface HistoricStockPricesPayload {
   three_qt_price: number;
   last_yr_price: number;
   five_qt_price: number;
+  six_qt_price: number;
   two_yr_price: number;
   five_yr_price: number;
   [key: string]: number | string | undefined;
@@ -68,6 +70,7 @@ export interface StockProfilePayload extends CurrentStockProfilePayload, Histori
 
 export type StockPricePayloadKey = keyof StockPricePayload;
 export interface StockPricePayload {
+  exchange_type: string,
   symbol: string;
   date: Date | string;
   high: number;
