@@ -31,6 +31,7 @@ const stockPriceModel = {
       VALUES (${stockPriceIndexes.join(', ')})
       ON CONFLICT (symbol, date) DO UPDATE
       SET
+        exchange_type = EXCLUDED.exchange_type,
         symbol = EXCLUDED.symbol,
         date = EXCLUDED.date,
         high = EXCLUDED.high,
@@ -76,7 +77,7 @@ const stockPriceModel = {
   },
 
   async getHistoric(stocks: Stock[]) {
-    const HISTORIC_DATES = [...QUARTERLY_STOCK_PRICE_DATES.slice(0, 5), QUARTERLY_STOCK_PRICE_DATES[7], QUARTERLY_STOCK_PRICE_DATES[19]];
+    const HISTORIC_DATES = [...QUARTERLY_STOCK_PRICE_DATES.slice(0, 6), QUARTERLY_STOCK_PRICE_DATES[7], QUARTERLY_STOCK_PRICE_DATES[19]];
     const getAllQuery = `
       SELECT exchange_type, symbol, date, high, low
       FROM stock_prices
