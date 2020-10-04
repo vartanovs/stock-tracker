@@ -44,14 +44,20 @@ class ModelingPrepClient {
   }
 
   // Given a raw API response, return quarterly formatted historic stock prices
-  private static formatHistoricStockPrices(historicalStockList: ModelingPrepHistoricPrices[]) {
+  private static formatHistoricStockPrices(historicalStockList: ModelingPrepHistoricPrices[], stocks: Stock[]) {
     let historicStockPrices: StockPricePayload[] = [];
 
     historicalStockList
       .map(formatModelingPrepHistoricStockPrices)
+      .map((historicStockPrices) => historicStockPrices
+        .map((historicStockPrice) => ({
+          ...historicStockPrice,
+          exchange_type: stocks.find(({ symbol }) => symbol === historicStockPrice.symbol)!.exchangeType,
+        }))
+      )
       .forEach((formattedStockPricePayloads) => {
         historicStockPrices = [...historicStockPrices, ...formattedStockPricePayloads];
-      });
+      })
 
     return historicStockPrices;
   }
@@ -206,7 +212,9 @@ class ModelingPrepClient {
         }
       }
 
-      const formattedHistoricalIndexPrices = formatModelingPrepHistoricStockPrices(apiResponse);
+      const formattedHistoricalIndexPrices = formatModelingPrepHistoricStockPrices(apiResponse)
+        .map((historicStockPrice) => ({ ...historicStockPrice, exchange_type: 'index' }));
+
       historicStockPrices = [...historicStockPrices, ...formattedHistoricalIndexPrices];
     }
 
@@ -233,7 +241,7 @@ class ModelingPrepClient {
           const response = await fetch(uri); // eslint-disable-line
           apiResponse = await response.json(); // eslint-disable-line
         } catch (err2) {
-          console.warn(`Unable to get financials for ${currentChunk}`); // eslint-disable-line
+          console.warn(`Unable to get historic prices for ${currentChunk}`); // eslint-disable-line
           return [];
         }
       }
@@ -241,7 +249,7 @@ class ModelingPrepClient {
       const { historicalStockList } = apiResponse;
       let formattedHistoricStockPrices: StockPricePayload[] = [];
       if (Array.isArray(historicalStockList)) {
-        formattedHistoricStockPrices = ModelingPrepClient.formatHistoricStockPrices(historicalStockList);
+        formattedHistoricStockPrices = ModelingPrepClient.formatHistoricStockPrices(historicalStockList, stocks);
       }
 
       historicStockPrices = [...historicStockPrices, ...formattedHistoricStockPrices];
