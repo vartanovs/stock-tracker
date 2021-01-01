@@ -5,7 +5,7 @@ import CSVClient from '../clients/csv';
 import ModelingPrepClient from '../clients/modeling_prep';
 import postgresClient from '../clients/postgres';
 
-import { POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
+import { NEW_STOCKS, POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
 import { QUARTERLY_STOCK_PRICE_DATES } from '../constants/dates';
 import { UPDATE_HISTORIC_STOCK_PRICES, UPDATE_STOCK_PRICES } from '../constants/flags';
 import { STOCK_PRICE_HEADERS, STOCK_PRICES_HEADERS } from '../constants/headers';
@@ -23,7 +23,8 @@ const modelingPrepClient = new ModelingPrepClient();
 
 const stockPriceModel = {
   async seedFromAPI(stocks: Stock[]) {
-    const stockPrices = await modelingPrepClient.getHistoricStockPrices(stocks);
+    const stocksToSeed = NEW_STOCKS.length ? stocks.filter(({ symbol }) => NEW_STOCKS.includes(symbol)) : [...stocks];
+    const stockPrices = await modelingPrepClient.getHistoricStockPrices(stocksToSeed);
 
     const stockPriceIndexes = STOCK_PRICE_HEADERS.map((_, i) => `$${i + 1}`);
     const seedQuery = `

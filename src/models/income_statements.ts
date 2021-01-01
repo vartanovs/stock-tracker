@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import { camelizeKeys } from 'humps';
 
 import CSVClient from '../clients/csv';
-import { FINANCIAL_STATEMENTS_COUNT, POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
+import { FINANCIAL_STATEMENTS_COUNT, NEW_STOCKS, POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
 import { incomeStatementKeysToModelingPrepDict } from '../constants/dicts';
 import { UPDATE_INCOME_STATEMENTS, UPSERT_INCOME_STATEMENTS } from '../constants/flags';
 import { INCOME_STATEMENT_HEADERS } from '../constants/headers';
@@ -43,7 +43,8 @@ const incomeStatementsModel = {
   },
 
   async seedFromAPI(equities: string[]) {
-    const incomeStatements = await modelingPrepClient.getIncomeStatements(equities);
+    const equitiesToSeed = NEW_STOCKS.length ? equities.filter(stock => NEW_STOCKS.includes(stock)) : [...equities];
+    const incomeStatements = await modelingPrepClient.getIncomeStatements(equitiesToSeed);
 
     type IncomeStatementKey = keyof ExtendedIncomeStatementPayload;
     const incomeStatementKeys = ['symbol', ...Object.keys(incomeStatementKeysToModelingPrepDict)] as IncomeStatementKey[];

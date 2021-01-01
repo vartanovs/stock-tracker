@@ -3,7 +3,7 @@ import { camelizeKeys } from 'humps';
 
 import CSVClient from '../clients/csv';
 import postgresClient from '../clients/postgres';
-import { POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
+import { NEW_STOCKS, POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
 import { UPDATE_STOCK_LIST } from '../constants/flags';
 import { STOCK_HEADERS } from '../constants/headers';
 import { sleep } from '../utils';
@@ -29,7 +29,11 @@ const stock = {
 
   async seedFromCSV() {
     const stockCSVClient = new CSVClient(PATH_TO_STOCK_LIST_CSV as string, STOCK_HEADERS);
-    const stocks = await stockCSVClient.readCSV();
+    let stocks: StockPayload[] = await stockCSVClient.readCSV();
+
+    if (NEW_STOCKS.length) {
+      stocks = stocks.filter(({ symbol }) => NEW_STOCKS.includes(symbol))
+    }
 
     const seedQuery = `
       INSERT INTO stocks (symbol, exchange_type, name)
