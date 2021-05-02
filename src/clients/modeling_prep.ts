@@ -156,33 +156,42 @@ class ModelingPrepClient {
 
   public async getIndexProfiles(indexes: Stock[]): Promise<CurrentStockProfile[]> {
     const indexSymbols = indexes.map(({ symbol }) => symbol);
-    const uri = `${this.host}${this.endpoints.quote}${indexSymbols.join(',')}?apikey=${this.apiKey}`;
 
-    let apiResponse: ModelingPrepQuote[];
-    try {
-      await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
-      console.log(`Fetching current index prices from: ${uri}`); // eslint-disable-line
-      const rawResponse = await fetch(uri); // eslint-disable-line
-      apiResponse = await rawResponse.json() as ModelingPrepQuote[]; // eslint-disable-line
-    } catch (err) {
+    let currentIndexPrices: CurrentStockProfile[] = [];
+    for (let i = 0; i < indexSymbols.length; i += 1) {
+      const currentIndex = indexSymbols[i];
+      const uri = `${this.host}${this.endpoints.quote}${currentIndex}?apikey=${this.apiKey}`;
+
+      let apiResponse: ModelingPrepQuote[];
       try {
         await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
-        console.warn('Fetch Error! Retrying', err); // eslint-disable-line
-        const response = await fetch(uri); // eslint-disable-line
-        apiResponse = await response.json(); // eslint-disable-line
-      } catch (err2) {
-        console.warn('Unable to get current index prices'); // eslint-disable-line
-        return [];
+        console.log(`Fetching current index prices from: ${uri}`); // eslint-disable-line
+        const rawResponse = await fetch(uri); // eslint-disable-line
+        apiResponse = await rawResponse.json() as ModelingPrepQuote[]; // eslint-disable-line
+      } catch (err) {
+        try {
+          await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+          console.warn('Fetch Error! Retrying', err); // eslint-disable-line
+          const response = await fetch(uri); // eslint-disable-line
+          apiResponse = await response.json(); // eslint-disable-line
+        } catch (err2) {
+          console.warn('Unable to get current index prices'); // eslint-disable-line
+          return [];
+        }
       }
+
+      const [industry, sector] = ['index', 'index'];
+      const formattedResponse = apiResponse
+        .map(({ symbol, price }) => {
+          const currentIndex = indexes.find((inx) => inx.symbol === symbol) ?? { exchangeType: 'index', symbol, name: 'index' };
+          const { exchangeType, name } = currentIndex;
+          return { exchangeType, symbol, name, price, industry, sector, shares: 0, mktCap: 0, lastDiv: 0 };
+        });
+
+      currentIndexPrices = [...currentIndexPrices, ...formattedResponse];
     }
 
-    const [industry, sector] = ['index', 'index'];
-    return apiResponse
-      .map(({ symbol, price }) => {
-        const currentIndex = indexes.find((inx) => inx.symbol === symbol) ?? { exchangeType: 'index', symbol, name: 'index' };
-        const { exchangeType, name } = currentIndex;
-        return { exchangeType, symbol, name, price, industry, sector, shares: 0, mktCap: 0, lastDiv: 0 };
-      });
+    return currentIndexPrices;
   }
 
   public async getHistoricStockPrices(stocks: Stock[]) {
