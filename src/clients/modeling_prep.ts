@@ -39,7 +39,7 @@ class ModelingPrepClient {
         const roundedMktCap = Number(roundMillion(String(mktCap)));
         const roundedLastDiv = Number(roundRatio(String(lastDiv)));
         const { exchangeType, name } = equities.find((equity) => equity.symbol === symbol) as Stock;
-        return { exchangeType, symbol, name, price, industry, sector, shares, mktCap: roundedMktCap, lastDiv: roundedLastDiv };
+        return { exchangeType, symbol, name, price, industry: industry.replace(',', ''), sector, shares, mktCap: roundedMktCap, lastDiv: roundedLastDiv };
       });
   }
 
