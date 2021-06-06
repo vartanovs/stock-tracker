@@ -9,7 +9,7 @@ export const chunkList = <T>(list: T[], chunkSize = MODELING_PREP_INCOME_STATEME
   return chunkedList;
 };
 
-export const roundMillion = (inputNumber: string) => {
+export const roundMillion = (inputNumber: number | string) => {
   const num = Number(inputNumber);
   return String(Math.round(num / 1000) / 1000);
 };

@@ -8,17 +8,18 @@ import { UPDATE_INCOME_STATEMENTS, UPSERT_INCOME_STATEMENTS } from '../constants
 import { INCOME_STATEMENT_HEADERS } from '../constants/headers';
 import { sleep } from '../utils';
 
-import ModelingPrepClient from '../clients/modeling_prep';
+import EdgarClient from '../clients/edgar';
 import postgresClient from '../clients/postgres';
 
 import type { QueryResult } from 'pg';
-import type { ExtendedIncomeStatementPayload, IncomeStatementPayload, IncomeStatement } from '../types';
+import type { IncomeStatementPayload, IncomeStatement } from '../types';
+import type { EdgarIncomeStatementPayload } from '../types/edgar';
 
 dotenv.config();
 
 const { PATH_TO_INCOME_STATEMENT_CORRECTIONS_CSV } = process.env;
 
-const modelingPrepClient = new ModelingPrepClient();
+const edgarClient = new EdgarClient();
 
 const incomeStatementsModel = {
   async readAll(equities: string[]) {
@@ -43,10 +44,10 @@ const incomeStatementsModel = {
   },
 
   async seedFromAPI(equities: string[]) {
-    const equitiesToSeed = NEW_STOCKS.length ? equities.filter(stock => NEW_STOCKS.includes(stock)) : [...equities];
-    const incomeStatements = await modelingPrepClient.getIncomeStatements(equitiesToSeed);
+    const equitiesToSeed = NEW_STOCKS.length ? equities.filter((stock) => NEW_STOCKS.includes(stock)) : [...equities];
+    const incomeStatements = await edgarClient.getIncomeStatements(equitiesToSeed);
 
-    type IncomeStatementKey = keyof ExtendedIncomeStatementPayload;
+    type IncomeStatementKey = keyof EdgarIncomeStatementPayload;
     const incomeStatementKeys = ['symbol', ...Object.keys(incomeStatementKeysToModelingPrepDict)] as IncomeStatementKey[];
     const incomeStatementIndexes = incomeStatementKeys.map((_, i) => `$${i + 1}`);
 
