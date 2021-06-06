@@ -57,7 +57,7 @@ class ModelingPrepClient {
       )
       .forEach((formattedStockPricePayloads) => {
         historicStockPrices = [...historicStockPrices, ...formattedStockPricePayloads];
-      })
+      });
 
     return historicStockPrices;
   }
