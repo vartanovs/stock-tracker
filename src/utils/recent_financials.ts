@@ -1,5 +1,11 @@
 import type { IncomeStatement, RecentFinancialsPayload, Stock } from '../types';
 
+const alphabetizeFinancialsPayloads = (stockA: RecentFinancialsPayload, stockB: RecentFinancialsPayload) => {
+  if (stockA.symbol > stockB.symbol) return 1;
+  if (stockA.symbol < stockB.symbol) return -1;
+  return 0;
+};
+
 const rekeyIncomeStatementMetrics = (incomeStatement: IncomeStatement, index: number) => ({
   [`revenue_${index + 1}`]: incomeStatement.revenue,
   [`gross_profit_${index + 1}`]: incomeStatement.grossProfit,
@@ -20,7 +26,7 @@ export const formatIncomeStatementsToRecentFinancials = (stocks: Stock[], income
       });
 
     return recentFinancialsPayload;
-  });
+  }).sort(alphabetizeFinancialsPayloads);
 
   return recentFinancials;
 };
