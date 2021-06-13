@@ -1,3 +1,4 @@
+import cryptoModel from './models/crypto';
 import incomeStatementModel from './models/income_statements';
 import recentFinancialsModel from './models/recent_financials';
 import stockModel from './models/stock';
@@ -17,6 +18,9 @@ const main = async () => {
 
   const stockPrices = await stockPriceModel.getAll(stocks);
   await stockPriceModel.saveAll(stockPrices);
+
+  const cryptoPrices = await cryptoModel.getAll();
+  await cryptoModel.saveAll(cryptoPrices);
 };
 
 main();

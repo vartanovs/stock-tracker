@@ -1,5 +1,34 @@
 export type ExchangeType = 'etf' | 'index' | 'nasdaq' | 'nyse';
 
+export interface CryptoPrice {
+  rank: number;
+  symbol: string;
+  name: string;
+  price: number;
+  marketCap: number;
+  lastDayChange: number;
+  lastWeekChange: number;
+  lastMonthChange: number;
+  twoMonthsChange: number;
+  threeMonthsChange: number;
+}
+
+export interface CryptoPricePayload {
+  rank: number;
+  symbol: string;
+  name: string;
+  price: number;
+  market_cap: number;
+  last_day_change: number;
+  last_week_change: number;
+  last_month_change: number;
+  two_months_change: number;
+  three_months_change: number;
+  [key: string]: number | string | undefined;
+}
+
+export type CryptoPricePayloadKey = keyof CryptoPricePayload;
+
 export interface Stock {
   exchangeType: ExchangeType;
   symbol: string;
@@ -70,7 +99,7 @@ export interface StockProfilePayload extends CurrentStockProfilePayload, Histori
 
 export type StockPricePayloadKey = keyof StockPricePayload;
 export interface StockPricePayload {
-  exchange_type: string,
+  exchange_type: string;
   symbol: string;
   date: Date | string;
   high: number;
