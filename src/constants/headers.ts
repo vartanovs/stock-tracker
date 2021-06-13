@@ -1,6 +1,11 @@
 // CSV and Postgres table headers
 
-import type { HistoricStockPricesPayloadKey, IncomeStatementPayloadKey, RecentFinancialsPayloadKey, StockPayloadKey, StockPricePayloadKey } from '../types';
+import type { CryptoPricePayloadKey, HistoricStockPricesPayloadKey, IncomeStatementPayloadKey, RecentFinancialsPayloadKey, StockPayloadKey, StockPricePayloadKey } from '../types';
+
+export const CRYPTO_PRICES_HEADERS: CryptoPricePayloadKey[] = [
+  'rank', 'symbol', 'name', 'price',
+  'market_cap', 'last_day_change', 'last_week_change', 'last_month_change', 'two_months_change', 'three_months_change',
+];
 
 export const INCOME_STATEMENT_HEADERS: IncomeStatementPayloadKey[] = [
   'symbol', 'date', 'revenue', 'gross_profit', 'operating_income', 'net_income_com',
