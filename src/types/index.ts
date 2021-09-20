@@ -33,6 +33,8 @@ export interface Stock {
   exchangeType: ExchangeType;
   symbol: string;
   name: string;
+  sector: string;
+  industry: string;
 }
 
 export type StockPayloadKey = keyof StockPayload;
@@ -40,6 +42,8 @@ export interface StockPayload {
   exchange_type: ExchangeType;
   symbol: string;
   name: string;
+  sector: string;
+  industry: string;
 }
 
 export interface StockPrice extends Stock {
@@ -54,7 +58,6 @@ export interface CurrentStockProfile extends Stock {
   price: number;
   shares: number;
   mktCap: number;
-  lastDiv: number;
 }
 
 export interface CurrentStockProfilePayload extends StockPayload {
@@ -63,7 +66,6 @@ export interface CurrentStockProfilePayload extends StockPayload {
   price: number;
   shares: number;
   mkt_cap: number;
-  last_div: number;
 }
 
 export interface HistoricStockPrices {
@@ -187,7 +189,7 @@ export type IncomeStatementPayload =
   Pick<ExtendedIncomeStatementPayload, 'symbol' | 'date' | 'revenue' | 'gross_profit' | 'operating_income' | 'net_income_com'>;
 
 export type RecentFinancialsPayloadKey = keyof RecentFinancialsPayload;
-export interface RecentFinancialsPayload extends StockPayload, Record<string, number | string | undefined> {
+export interface RecentFinancialsPayload extends Omit<StockPayload, 'sector' | 'industry'>, Record<string, number | string | undefined> {
   as_of?: string;
   revenue_8?: number;
   revenue_7?: number;
