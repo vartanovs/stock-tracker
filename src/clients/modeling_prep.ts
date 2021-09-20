@@ -31,15 +31,16 @@ class ModelingPrepClient {
     this.endpoints.quote = 'quote/';
   }
 
-  // Given a raw API responses, returnformatted current stock price data
+  // Given a raw API responses, return formatted current stock price data
   private static formatCurrentStockPrices(modelingPrepProfiles: ModelingPrepProfile[], equities: Stock[]): CurrentStockProfile[] {
     return modelingPrepProfiles
-      .map(({ symbol, price, industry, sector, mktCap, lastDiv }) => {
+      .map(({ symbol, price, industry: unformattedIndustry, sector, mktCap, lastDiv }) => {
         const shares = Number(roundMillion(String(mktCap / price)));
         const roundedMktCap = Number(roundMillion(String(mktCap)));
         const roundedLastDiv = Number(roundRatio(String(lastDiv)));
         const { exchangeType, name } = equities.find((equity) => equity.symbol === symbol) as Stock;
-        return { exchangeType, symbol, name, price, industry: industry.replace(',', ''), sector, shares, mktCap: roundedMktCap, lastDiv: roundedLastDiv };
+        const industry = unformattedIndustry.replace(',', '');
+        return { exchangeType, symbol, name, price, industry, sector, shares, mktCap: roundedMktCap, lastDiv: roundedLastDiv };
       });
   }
 
@@ -53,8 +54,7 @@ class ModelingPrepClient {
         .map((historicStockPrice) => ({
           ...historicStockPrice,
           exchange_type: stocks.find(({ symbol }) => symbol === historicStockPrice.symbol)!.exchangeType,
-        }))
-      )
+        })))
       .forEach((formattedStockPricePayloads) => {
         historicStockPrices = [...historicStockPrices, ...formattedStockPricePayloads];
       });
@@ -183,9 +183,9 @@ class ModelingPrepClient {
       const [industry, sector] = ['index', 'index'];
       const formattedResponse = apiResponse
         .map(({ symbol, price }) => {
-          const currentIndex = indexes.find((inx) => inx.symbol === symbol) ?? { exchangeType: 'index', symbol, name: 'index' };
-          const { exchangeType, name } = currentIndex;
-          return { exchangeType, symbol, name, price, industry, sector, shares: 0, mktCap: 0, lastDiv: 0 };
+          const indexMatchingSymbol = indexes.find((inx) => inx.symbol === symbol) ?? { exchangeType: 'index', symbol, name: 'index' };
+          const { exchangeType, name } = indexMatchingSymbol;
+          return { exchangeType, symbol, name, price, industry, sector, shares: 0, mktCap: 0 };
         });
 
       currentIndexPrices = [...currentIndexPrices, ...formattedResponse];
