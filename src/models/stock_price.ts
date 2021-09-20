@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
 import { camelizeKeys, decamelizeKeys } from 'humps';
 
+import AlpacaClient from '../clients/alpaca';
 import CSVClient from '../clients/csv';
+import FinnhubClient from '../clients/finnhub';
 import ModelingPrepClient from '../clients/modeling_prep';
 import postgresClient from '../clients/postgres';
 
@@ -13,12 +15,14 @@ import { sleep } from '../utils';
 import { formatHistoricPrices } from '../utils/stock_prices';
 
 import type { QueryResult } from 'pg';
-import type { StockProfile, StockProfilePayload, Stock, HistoricStockPrices, StockPrice, StockPricePayload } from '../types';
+import type { StockProfile, StockProfilePayload, Stock, HistoricStockPrices, StockPrice, StockPricePayload, CurrentStockProfile } from '../types';
 
 dotenv.config();
 
 const { PATH_TO_STOCK_PRICES_CSV } = process.env;
 
+const alpacaClient = new AlpacaClient();
+const finnhubClient = new FinnhubClient();
 const modelingPrepClient = new ModelingPrepClient();
 
 const stockPriceModel = {
@@ -58,11 +62,27 @@ const stockPriceModel = {
   async getAll(stocks: Stock[]): Promise<StockProfile[]> {
     if (!UPDATE_STOCK_PRICES) return [];
     if (UPDATE_HISTORIC_STOCK_PRICES) await this.seedFromAPI(stocks);
-    const stockProfiles = await this.getCurrent(stocks);
+    const equities = stocks.filter(({ exchangeType }) => ['nasdaq', 'nyse'].includes(exchangeType));
+    const indexes = stocks.filter(({ exchangeType }) => exchangeType === 'index');
+
+    const equityProfiles = await finnhubClient.getEquityProfiles(equities);
+    const indexProfiles = await modelingPrepClient.getIndexProfiles(indexes);
+    const currentEquityPrices = await alpacaClient.getCurrentEquityPrices(equities);
     const historicStockPrices = await this.getHistoric(stocks);
-    const fullStockPrices = stockProfiles.map((stockProfile) => {
-      const historicPrices = historicStockPrices.find(({ symbol }) => symbol === stockProfile.symbol) as HistoricStockPrices;
-      return { ...stockProfile, ...historicPrices };
+    const fullStockPrices = stocks.map((stock) => {
+      const { exchangeType, symbol } = stock;
+      const historicPrices = historicStockPrices.find((historicRecord) => historicRecord.symbol === symbol) as HistoricStockPrices;
+      if (exchangeType === 'index') {
+        // indexes include mktCap, price and shares as part of their profile
+        const profile = indexProfiles.find((indexProfile) => indexProfile.symbol === symbol);
+        const { mktCap, price, shares } = profile as CurrentStockProfile;
+        return { ...stock, mktCap, price, shares, ...historicPrices };
+      }
+
+      // equities require two calls: one to get price, another to get mktCap and shares
+      const equityPrice = currentEquityPrices[symbol];
+      const equityProfile = equityProfiles[symbol];
+      return { ...stock, ...equityProfile, ...historicPrices, price: equityPrice };
     });
 
     return fullStockPrices;
