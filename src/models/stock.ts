@@ -3,7 +3,7 @@ import { camelizeKeys } from 'humps';
 
 import CSVClient from '../clients/csv';
 import postgresClient from '../clients/postgres';
-import { NEW_STOCKS, POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
+import { CENTRAL_INDEX_KEY_LENGTH, NEW_STOCKS, POSTGRES_SLEEP_TIMEOUT_MS } from '../constants/configs';
 import { UPDATE_STOCK_LIST } from '../constants/flags';
 import { STOCK_HEADERS } from '../constants/headers';
 import { sleep } from '../utils';
@@ -36,18 +36,19 @@ const stock = {
     }
 
     const seedQuery = `
-      INSERT INTO stocks (symbol, exchange_type, name, sector, industry)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO stocks (symbol, exchange_type, name, central_index_key, sector, industry)
+      VALUES ($1, $2, $3, $4, $5, $6)
     `;
 
     await postgresClient.connect();
     for (let i = 0; i < stocks.length; i += 1) {
-      const { symbol, exchange_type: exchangeType, name, sector, industry } = stocks[i];
-      if (!symbol || !exchangeType || !name || !sector || !industry) break;
+      let { symbol, exchange_type: exchangeType, name, central_index_key: centralIndexKey, sector, industry } = stocks[i];
+      centralIndexKey = centralIndexKey.padStart(CENTRAL_INDEX_KEY_LENGTH, '0');
+      if (!symbol || !exchangeType || !name || !centralIndexKey || !sector || !industry) break;
 
       try {
         await sleep(POSTGRES_SLEEP_TIMEOUT_MS); // eslint-disable-line
-        await postgresClient.query(seedQuery, [symbol, exchangeType, name, sector, industry]); // eslint-disable-line
+        await postgresClient.query(seedQuery, [symbol, exchangeType, name, centralIndexKey, sector, industry]); // eslint-disable-line
         console.log(`Seeded ${symbol} into "stocks" postgres table`); // eslint-disable-line
       } catch (err) {
         console.error(`Could not seed ${symbol} into "stocks" postgres table`, { err }); // eslint-disable-line
