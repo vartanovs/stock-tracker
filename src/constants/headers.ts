@@ -19,7 +19,7 @@ export const RECENT_FINANCIALS_HEADERS: RecentFinancialsPayloadKey[] = [
   'net_income_8', 'net_income_7', 'net_income_6', 'net_income_5', 'net_income_4', 'net_income_3', 'net_income_2', 'net_income_1',
 ];
 
-export const STOCK_HEADERS: StockPayloadKey[] = ['exchange_type', 'symbol', 'name', 'sector', 'industry'];
+export const STOCK_HEADERS: StockPayloadKey[] = ['exchange_type', 'symbol', 'name', 'central_index_key', 'sector', 'industry'];
 
 export const STOCK_PRICE_HEADERS: StockPricePayloadKey[] = ['exchange_type', 'symbol', 'date', 'high', 'low'];
 
