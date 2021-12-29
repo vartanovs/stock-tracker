@@ -10,7 +10,7 @@ const rekeyIncomeStatementMetrics = (incomeStatement: IncomeStatement, index: nu
   [`revenue_${index + 1}`]: incomeStatement.revenue,
   [`gross_profit_${index + 1}`]: incomeStatement.grossProfit,
   [`op_income_${index + 1}`]: incomeStatement.operatingIncome,
-  [`net_income_${index + 1}`]: incomeStatement.netIncomeCom,
+  [`net_income_${index + 1}`]: incomeStatement.netIncome,
 });
 
 export const formatIncomeStatementsToRecentFinancials = (stocks: Stock[], incomeStatements: IncomeStatement[]) => {

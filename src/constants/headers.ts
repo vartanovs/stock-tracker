@@ -8,7 +8,7 @@ export const CRYPTO_PRICES_HEADERS: CryptoPricePayloadKey[] = [
 ];
 
 export const INCOME_STATEMENT_HEADERS: IncomeStatementPayloadKey[] = [
-  'symbol', 'date', 'revenue', 'gross_profit', 'operating_income', 'net_income_com',
+  'symbol', 'date', 'revenue', 'gross_profit', 'operating_income', 'net_income',
 ];
 
 export const RECENT_FINANCIALS_HEADERS: RecentFinancialsPayloadKey[] = [

@@ -33,6 +33,7 @@ export interface Stock {
   exchangeType: ExchangeType;
   symbol: string;
   name: string;
+  centralIndexKey: string;
   sector: string;
   industry: string;
 }
@@ -42,17 +43,18 @@ export interface StockPayload {
   exchange_type: ExchangeType;
   symbol: string;
   name: string;
+  central_index_key: string;
   sector: string;
   industry: string;
 }
 
-export interface StockPrice extends Stock {
+export interface StockPrice extends Omit<Stock, 'centralIndexKey'> {
   date: Date | string;
   high: number;
   low: number;
 }
 
-export interface CurrentStockProfile extends Stock {
+export interface CurrentStockProfile extends Omit<Stock, 'centralIndexKey'> {
   industry: string;
   sector: string;
   price: number;
@@ -60,7 +62,7 @@ export interface CurrentStockProfile extends Stock {
   mktCap: number;
 }
 
-export interface CurrentStockProfilePayload extends StockPayload {
+export interface CurrentStockProfilePayload extends Omit<StockPayload, 'central_index_key'> {
   industry: string;
   sector: string;
   price: number;
@@ -182,14 +184,14 @@ export interface ExtendedIncomeStatement {
 }
 
 export type IncomeStatement =
-  Pick<ExtendedIncomeStatement, 'symbol' | 'date' | 'revenue' | 'grossProfit' | 'operatingIncome' | 'netIncomeCom'>;
+  Pick<ExtendedIncomeStatement, 'symbol' | 'date' | 'revenue' | 'grossProfit' | 'operatingIncome' | 'netIncome'>;
 
 export type IncomeStatementPayloadKey = keyof IncomeStatementPayload;
 export type IncomeStatementPayload =
-  Pick<ExtendedIncomeStatementPayload, 'symbol' | 'date' | 'revenue' | 'gross_profit' | 'operating_income' | 'net_income_com'>;
+  Pick<ExtendedIncomeStatementPayload, 'symbol' | 'date' | 'revenue' | 'gross_profit' | 'operating_income' | 'net_income'>;
 
 export type RecentFinancialsPayloadKey = keyof RecentFinancialsPayload;
-export interface RecentFinancialsPayload extends Omit<StockPayload, 'sector' | 'industry'>, Record<string, number | string | undefined> {
+export interface RecentFinancialsPayload extends Omit<StockPayload, 'central_index_key' | 'sector' | 'industry'>, Record<string, number | string | undefined> {
   as_of?: string;
   revenue_8?: number;
   revenue_7?: number;
