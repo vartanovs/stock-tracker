@@ -1,48 +1,60 @@
-
-export interface EdgarCoreFinancialsResponse {
-  result: {
-    totalRows: number;
-    rows: EdgarIncomeStatementConsolidated[];
-  }
+export interface EdgarCompanyFactsResponse {
+  cik: number;
+  entityName: string;
+  facts: EdgarSECCompanyFacts;
 }
 
-export interface EdgarIncomeStatementConsolidated {
-  rownum: number;
-  values: EdgarIncomeStatementValue[];
+export interface EdgarSECCompanyFacts {
+  'dei': EdgarDocumentEntityInformation;
+  'us-gaap': EdgarUSGAAP;
 }
 
-export type EdgarIncomeStatementKeys = 'basicepsnetincome' // eps
-| 'costofrevenue' // cost_of_revenue
-| 'dilutedepsnetincome' // eps_diluted
-| 'ebit' // ebit
-| 'grossprofit' // gross_profit
-| 'incometaxes' // income_tax_expense
-| 'netincome' // net_income
-| 'netincomeapplicabletocommon' // net_income_com
-| 'operatingprofit' // operating_income
-| 'researchdevelopmentexpense' // rd_expense
-| 'sellinggeneraladministrativeexpenses' // sga_expense
-| 'totalrevenue'; // revenue
+export interface EdgarDocumentEntityInformation {
+  EntityCommonStockSharesOutstanding: EdgarLabel;
+  EntityPublicFloat: EdgarLabel;
+}
 
-// Subset of ExtendedIncomeStatementPayload
+export interface EdgarUSGAAP {
+  GrossProfit?: EdgarLabel;
+  NetIncomeLoss?: EdgarLabel;
+  NetIncomeLossAvailableToCommonStockholdersBasic?: EdgarLabel;
+  OperatingExpenses?: EdgarLabel;
+  OperatingIncomeLoss?: EdgarLabel;
+  OperatingLeaseLeaseIncome?: EdgarLabel;
+  ProfitLoss?: EdgarLabel;
+  ResearchAndDevelopmentExpense?: EdgarLabel;
+  Revenues?: EdgarLabel;
+  RevenueFromContractWithCustomerExcludingAssessedTax?: EdgarLabel;
+  RevenueFromContractWithCustomerIncludingAssessedTax?: EdgarLabel;
+  SellingGeneralAndAdministrativeExpense?: EdgarLabel;
+}
+
+export interface EdgarLabel {
+  label: string;
+  description: string;
+  units: {
+    shares?: EdgarUnit[];
+    USD?: EdgarUnit[];
+  };
+}
+
+export interface EdgarUnit {
+  end: string;
+  val: number;
+  accn: string;
+  fy: number;
+  fp: string;
+  form: string;
+  filed: string;
+  start?: string;
+  frame?: string;
+}
+
 export interface EdgarIncomeStatementPayload {
   symbol: string;
   date: string;
-  cost_of_revenue: string;
-  ebit: string;
-  eps: number;
-  eps_diluted: number;
   gross_profit: string;
-  income_tax_expense: string;
   net_income: string;
-  net_income_com: string;
   operating_income: string;
-  rd_expense: string;
   revenue: string;
-  sga_expense: string;
-}
-
-export interface EdgarIncomeStatementValue {
-  field: EdgarIncomeStatementKeys;
-  value: number;
 }

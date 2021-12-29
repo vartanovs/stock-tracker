@@ -3,64 +3,59 @@ import fetch from 'node-fetch';
 import { URL } from 'url';
 
 import { FETCH_SLEEP_TIMEOUT_MS } from '../constants/configs';
-import { QUARTERLY_EARNINGS_DATES } from '../constants/dates';
 import { roundMillion, sleep } from '../utils';
 
-import type { EdgarCoreFinancialsResponse, EdgarIncomeStatementConsolidated, EdgarIncomeStatementPayload, EdgarIncomeStatementValue } from '../types/edgar';
+import type { Stock } from '../types';
+import type { EdgarCompanyFactsResponse, EdgarLabel, EdgarIncomeStatementPayload, EdgarUnit } from '../types/edgar';
 
 dotenv.config();
 
+const userAgent = process.env.EDGAR_SEC_USER_AGENT!;
+
 class EdgarClient {
   constructor(
-    private apiKey = process.env.EDGAR_API_KEY as string,
     private endpoints: Record<string, string> = {},
-    private host = 'https://datafied.api.edgar-online.com/v2/'
+    private host = 'https://data.sec.gov/'
   ) {
-    this.endpoints.coreFinancials = 'corefinancials/qtr';
+    this.endpoints.companyFacts = 'api/xbrl/companyfacts/';
   }
 
-  private static formatIncomeStatements(incomeStatements: EdgarIncomeStatementConsolidated[], symbol: string) {
-    return incomeStatements.map(({ rownum, values }) => ({
-      symbol,
-      date: QUARTERLY_EARNINGS_DATES[rownum],
-      cost_of_revenue: EdgarClient.getRoundedValue(values, 'costofrevenue'),
-      ebit: EdgarClient.getRoundedValue(values, 'ebit'),
-      eps: values.find(({ field }) => field === 'basicepsnetincome')?.value ?? 0,
-      eps_diluted: values.find(({ field }) => field === 'dilutedepsnetincome')?.value ?? 0,
-      gross_profit: EdgarClient.getRoundedValue(values, 'grossprofit'),
-      income_tax_expense: EdgarClient.getRoundedValue(values, 'incometaxes'),
-      net_income: EdgarClient.getRoundedValue(values, 'netincome'),
-      net_income_com: EdgarClient.getRoundedValue(values, 'netincomeapplicabletocommon'),
-      operating_income: EdgarClient.getRoundedValue(values, 'operatingprofit'),
-      rd_expense: EdgarClient.getRoundedValue(values, 'researchdevelopmentexpense'),
-      revenue: EdgarClient.getRoundedValue(values, 'totalrevenue'),
-      sga_expense: EdgarClient.getRoundedValue(values, 'sellinggeneraladministrativeexpenses'),
-    }) as EdgarIncomeStatementPayload);
+  private static getLatestQuarterEndDates(secUnits: EdgarUnit[]) {
+    const dates =  secUnits
+      .filter(({ frame }) => frame?.length === 8)
+      .map(({ end }) => end);
+
+    return dates
+      .filter((value, index, array) => array.indexOf(value) === index)
+      .sort((date1, date2) => new Date(date2).getTime() - new Date(date1).getTime())
+      .slice(0, 8);
   }
 
-  private static getRoundedValue(incomeStatementValues: EdgarIncomeStatementValue[], keyName: string) {
-    return roundMillion(incomeStatementValues.find(({ field }) => field === keyName)?.value ?? 0);
+  private static getQuarterlyValue(date: string, label?: EdgarLabel) {
+    if (!label) return '0';
+
+    const { units } = label;
+    const { USD = [] } = units;
+    const rawLabel = USD
+      .filter((value) => value.frame?.length === 8 && value.end === date)
+      .map(({ val }) => val);
+
+    return roundMillion(rawLabel[0] ?? 0);
   }
 
-  public async getIncomeStatements(equities: string[]) {
+  public async getIncomeStatements(equities: Stock[]) {
     let incomeStatements: EdgarIncomeStatementPayload[] = [];
 
-    for (let i = 0; i < equities.length; i += 1) {
-      const currentSymbol = equities[i];
-      const url = new URL(this.endpoints.coreFinancials, this.host);
-      url.searchParams.set('Appkey', this.apiKey);
-      url.searchParams.set('fields', 'IncomeStatementConsolidated');
-      url.searchParams.set('primarysymbols', currentSymbol);
-      url.searchParams.set('numPeriods', '8');
-      url.searchParams.set('deleted', 'false');
-      url.searchParams.set('debug', 'false');
+    for (const { symbol, centralIndexKey } of equities) {
+      const pathName = `${this.endpoints.companyFacts}CIK${centralIndexKey}.json`;
+      const url = new URL(pathName, this.host);
 
-      let apiResponse: EdgarCoreFinancialsResponse;
+      let apiResponse: EdgarCompanyFactsResponse;
       try {
-        await sleep(FETCH_SLEEP_TIMEOUT_MS/2); // eslint-disable-line
-        console.log(`Fetching income statements from: ${url}`); // eslint-disable-line
-        const rawResponse = await fetch(url, { headers: { 'Accept': 'application/json' } }); // eslint-disable-line
-        apiResponse = await rawResponse.json() as EdgarCoreFinancialsResponse; // eslint-disable-line
+        await sleep(FETCH_SLEEP_TIMEOUT_MS / 5); // eslint-disable-line
+        console.log(`Fetching ${symbol} facts from: ${url}`); // eslint-disable-line
+        const rawResponse = await fetch(url, { headers: { 'user-agent': userAgent } }); // eslint-disable-line
+        apiResponse = await rawResponse.json(); // eslint-disable-line
       } catch (err) {
         try {
           await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
@@ -68,18 +63,53 @@ class EdgarClient {
           const response = await fetch(url); // eslint-disable-line
           apiResponse = await response.json(); // eslint-disable-line
         } catch (err2) {
-          console.warn(`Unable to get financials for ${currentSymbol}`); // eslint-disable-line
-          return [];
+          console.warn(`Unable to get company facts for ${symbol}`); // eslint-disable-line
+          continue;
         }
       }
 
-      const { result } = apiResponse;
-      const { rows } = result;
+      const { facts } = apiResponse;
+      const { 'us-gaap': usGAAP } = facts;
+      if (!usGAAP) continue;
 
-      let formattedIncomeStatements: EdgarIncomeStatementPayload[] = [];
-      if (Array.isArray(rows)) {
-        formattedIncomeStatements = EdgarClient.formatIncomeStatements(rows, currentSymbol);
-      }
+      // Some SEC entries use an alternative key for Revenue and Net Income
+      const {
+        GrossProfit,
+        NetIncomeLoss: NetIncomeAlt1,
+        NetIncomeLossAvailableToCommonStockholdersBasic: NetIncomeAlt2,
+        ProfitLoss: NetIncomeAlt3,
+        OperatingIncomeLoss: OperatingIncome,
+        Revenues: RevenuesAlt1,
+        RevenueFromContractWithCustomerExcludingAssessedTax: RevenuesAlt2,
+        RevenueFromContractWithCustomerIncludingAssessedTax: RevenuesAlt3,
+        OperatingLeaseLeaseIncome: RevenuesAlt4,
+      } = usGAAP;
+
+      const concatUSD = [
+        ...(GrossProfit && GrossProfit.units && GrossProfit.units.USD ? GrossProfit.units.USD : []),
+        ...(NetIncomeAlt1 && NetIncomeAlt1.units && NetIncomeAlt1.units.USD ? NetIncomeAlt1.units.USD : []),
+        ...(NetIncomeAlt2 && NetIncomeAlt2.units && NetIncomeAlt2.units.USD ? NetIncomeAlt2.units.USD : []),
+        ...(NetIncomeAlt3 && NetIncomeAlt3.units && NetIncomeAlt3.units.USD ? NetIncomeAlt3.units.USD : []),
+        ...(OperatingIncome && OperatingIncome.units && OperatingIncome.units.USD ? OperatingIncome.units.USD : []),
+        ...(RevenuesAlt1 && RevenuesAlt1.units && RevenuesAlt1.units.USD ? RevenuesAlt1.units.USD : []),
+        ...(RevenuesAlt2 && RevenuesAlt2.units && RevenuesAlt2.units.USD ? RevenuesAlt2.units.USD : []),
+        ...(RevenuesAlt3 && RevenuesAlt3.units && RevenuesAlt3.units.USD ? RevenuesAlt3.units.USD : []),
+        ...(RevenuesAlt4 && RevenuesAlt4.units && RevenuesAlt4.units.USD ? RevenuesAlt4.units.USD : []),
+      ];
+
+      const dates = EdgarClient.getLatestQuarterEndDates(concatUSD);
+
+      const formattedIncomeStatements = dates
+        .map((date) => ({ date, symbol }))
+        .map((data) => ({ ...data, gross_profit: EdgarClient.getQuarterlyValue(data.date, GrossProfit) }))
+        .map((data) => ({ ...data, net_income: EdgarClient.getQuarterlyValue(data.date, NetIncomeAlt1) }))
+        .map((data) => ({ ...data, net_income: data.net_income === '0' ? EdgarClient.getQuarterlyValue(data.date, NetIncomeAlt2) : data.net_income }))
+        .map((data) => ({ ...data, net_income: data.net_income === '0' ? EdgarClient.getQuarterlyValue(data.date, NetIncomeAlt3) : data.net_income }))
+        .map((data) => ({ ...data, operating_income: EdgarClient.getQuarterlyValue(data.date, OperatingIncome) }))
+        .map((data) => ({ ...data, revenue: EdgarClient.getQuarterlyValue(data.date, RevenuesAlt1) }))
+        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.date, RevenuesAlt2) : data.revenue }))
+        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.date, RevenuesAlt3) : data.revenue }))
+        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.date, RevenuesAlt4) : data.revenue }));
 
       incomeStatements = [...incomeStatements, ...formattedIncomeStatements];
     }
