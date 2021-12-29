@@ -12,7 +12,7 @@ import EdgarClient from '../clients/edgar';
 import postgresClient from '../clients/postgres';
 
 import type { QueryResult } from 'pg';
-import type { IncomeStatementPayload, IncomeStatement } from '../types';
+import type { IncomeStatementPayload, IncomeStatement, Stock } from '../types';
 import type { EdgarIncomeStatementPayload } from '../types/edgar';
 
 dotenv.config();
@@ -22,15 +22,15 @@ const { PATH_TO_INCOME_STATEMENT_CORRECTIONS_CSV } = process.env;
 const edgarClient = new EdgarClient();
 
 const incomeStatementsModel = {
-  async readAll(equities: string[]) {
+  async readAll(equities: Stock[]) {
     if (UPDATE_INCOME_STATEMENTS) await this.seedFromAPI(equities);
     if (UPSERT_INCOME_STATEMENTS) await this.seedFromCSV();
 
     // Retrieve key fields from most recent income statements
     const readAllQuery = `
-      SELECT symbol, date, revenue, gross_profit, operating_income, net_income_com FROM
+      SELECT symbol, date, revenue, gross_profit, operating_income, net_income FROM
         (
-          SELECT symbol, date, revenue, gross_profit, operating_income, net_income_com, rank() OVER (PARTITION BY symbol ORDER BY DATE DESC)
+          SELECT symbol, date, revenue, gross_profit, operating_income, net_income, rank() OVER (PARTITION BY symbol ORDER BY DATE DESC)
           FROM income_statements
         ) income_statements_ordered_by_date
       WHERE RANK <= ${FINANCIAL_STATEMENTS_COUNT}
@@ -43,8 +43,8 @@ const incomeStatementsModel = {
     return camelizeKeys(response.rows) as IncomeStatement[];
   },
 
-  async seedFromAPI(equities: string[]) {
-    const equitiesToSeed = NEW_STOCKS.length ? equities.filter((stock) => NEW_STOCKS.includes(stock)) : [...equities];
+  async seedFromAPI(equities: Stock[]) {
+    const equitiesToSeed = NEW_STOCKS.length ? equities.filter(({ symbol }) => NEW_STOCKS.includes(symbol)) : [...equities];
     const incomeStatements = await edgarClient.getIncomeStatements(equitiesToSeed);
 
     type IncomeStatementKey = keyof EdgarIncomeStatementPayload;
@@ -77,27 +77,27 @@ const incomeStatementsModel = {
     const incomeStatementCorrections = await incomeStatementCorrectionsCSVClient.readCSV();
 
     const upsertQuery = `
-      INSERT INTO income_statements (symbol, date, revenue, gross_profit, operating_income, net_income_com)
+      INSERT INTO income_statements (symbol, date, revenue, gross_profit, operating_income, net_income)
       VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (symbol, date) DO UPDATE
       SET
         revenue = EXCLUDED.revenue,
         gross_profit = EXCLUDED.gross_profit,
         operating_income = EXCLUDED.operating_income,
-        net_income_com = EXCLUDED.net_income_com
+        net_income = EXCLUDED.net_income
     `;
 
     await postgresClient.connect();
     for (let i = 0; i < incomeStatementCorrections.length; i += 1) {
       const {
         symbol, date, revenue,
-        gross_profit: grossProfit, operating_income: operatingIncome, net_income_com: netIncomeCom,
+        gross_profit: grossProfit, operating_income: operatingIncome, net_income: netIncome,
       } = incomeStatementCorrections[i];
-      if (!symbol || !date || !revenue || !grossProfit || !operatingIncome || !netIncomeCom) break;
+      if (!symbol || !date || !revenue || !grossProfit || !operatingIncome || !netIncome) break;
 
       try {
         await sleep(POSTGRES_SLEEP_TIMEOUT_MS); // eslint-disable-line
-        await postgresClient.query(upsertQuery, [symbol, date, revenue, grossProfit, operatingIncome, netIncomeCom]); // eslint-disable-line
+        await postgresClient.query(upsertQuery, [symbol, date, revenue, grossProfit, operatingIncome, netIncome]); // eslint-disable-line
         console.log(`Upserted ${symbol} - ${date} into "income_statements" postgres table`); // eslint-disable-line
       } catch (err) {
         console.error(`Could not upsert ${symbol} - ${date} into "income_statements" postgres table`, { err }); // eslint-disable-line

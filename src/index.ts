@@ -7,11 +7,9 @@ import { formatIncomeStatementsToRecentFinancials } from './utils/recent_financi
 
 const main = async () => {
   const stocks = await stockModel.readAll();
-  const equitySymbols = stocks
-    .filter((stock) => stock.exchangeType === 'nyse' || stock.exchangeType === 'nasdaq')
-    .map(({ symbol }) => symbol);
+  const equities = stocks.filter((stock) => stock.exchangeType === 'nyse' || stock.exchangeType === 'nasdaq');
 
-  const incomeStatements = await incomeStatementModel.readAll(equitySymbols);
+  const incomeStatements = await incomeStatementModel.readAll(equities);
 
   const recentFinancials = formatIncomeStatementsToRecentFinancials(stocks, incomeStatements);
   recentFinancialsModel.saveAll(recentFinancials);
