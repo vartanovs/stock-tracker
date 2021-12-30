@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 import { URL } from 'url';
 
 import { FETCH_SLEEP_TIMEOUT_MS } from '../constants/configs';
+import { EDGAR_FRAMES, QUARTERLY_EARNINGS_DATES } from '../constants/dates';
 import { roundMillion, sleep } from '../utils';
 
 import type { Stock } from '../types';
@@ -22,25 +23,76 @@ class EdgarClient {
 
   private static getLatestQuarterEndDates(secUnits: EdgarUnit[]) {
     const dates =  secUnits
-      .filter(({ frame }) => frame?.length === 8)
-      .map(({ end }) => end);
+      .filter(({ frame }) => frame?.length)
+      .map(({ frame, end }) => ({ frame, end }))
+      .sort((date1, date2) => new Date(date2.end).getTime() - new Date(date1.end).getTime());
 
-    return dates
-      .filter((value, index, array) => array.indexOf(value) === index)
-      .sort((date1, date2) => new Date(date2).getTime() - new Date(date1).getTime())
-      .slice(0, 8);
+    const frames: { frame?: string, end: string }[] = EDGAR_FRAMES
+      .map((frame, index) => {
+        let date = dates.find((date) => date.frame === frame)
+        if (date) return date;
+
+        // Q4 frame is sometimes missing - in this case, we would add up the remaining frames
+        if (frame.endsWith('Q4')) {
+          date = dates.find((date) => date.frame === frame.substring(0,6))
+        }
+  
+        return date ? date : { end: QUARTERLY_EARNINGS_DATES[index] };
+      });
+
+    // Latest quarter data may not yet be available
+    while (!frames[0]?.frame! && frames.length) frames.shift()
+
+    return frames.slice(0, 8);
   }
 
-  private static getQuarterlyValue(date: string, label?: EdgarLabel) {
-    if (!label) return '0';
+  private static getQuarterlyGrossProfit(frame?: string, revenueString?: string, costLabel?: EdgarLabel) {
+    const quarter4RevenueInMillions = Number(revenueString);
+    if (!frame || !quarter4RevenueInMillions || isNaN(quarter4RevenueInMillions) || !costLabel) return '0';
+    
+    const { units: costUnits } = costLabel;
+    const { USD = [] } = costUnits;
+
+    // For quarterly frames - identify the cost frame and return the net of revenue and cost
+    if (frame.length === 8) {
+      const costValues = USD
+        .filter((value) => value.frame === frame)
+        .map(({ val }) => val);
+      
+      return String(costValues[0] ? quarter4RevenueInMillions - Number(roundMillion(costValues[0])) : 0);
+    }
+
+    // For annual frames - remove all quarterly values from the annual value
+    const allCostFrames = USD.filter((value) => value.frame?.startsWith(frame));
+    const annualCost = allCostFrames.find((label) => label.frame === frame)?.val;
+    const quarterlyCosts = allCostFrames.filter((label) => label.frame !== frame).map(({ val }) => val);
+    
+    const quarter4Cost = annualCost ? quarterlyCosts.reduce((acc, val) => acc - val, annualCost) : 0;
+    return String(quarter4Cost ? quarter4RevenueInMillions - Number(roundMillion(quarter4Cost)) : 0);
+  }
+
+  private static getQuarterlyValue(frame?: string, label?: EdgarLabel) {
+    if (!frame || !label) return '0';
 
     const { units } = label;
     const { USD = [] } = units;
-    const rawLabel = USD
-      .filter((value) => value.frame?.length === 8 && value.end === date)
-      .map(({ val }) => val);
 
-    return roundMillion(rawLabel[0] ?? 0);
+    // For quarterly frames - identify the frame and return the value
+    if (frame.length === 8) {
+      const values = USD
+        .filter((value) => value.frame === frame)
+        .map(({ val }) => val);
+
+      return roundMillion(values[0] ?? 0);
+    }
+
+    // For annual frames - remove all quarterly values from the annual value
+    const allFrames = USD.filter((value) => value.frame?.startsWith(frame));
+    const annualValue = allFrames.find((label) => label.frame === frame)?.val;
+    const quarterlyValues = allFrames.filter((label) => label.frame !== frame).map(({ val }) => val);
+    
+    const quarter4Value = annualValue ? quarterlyValues.reduce((acc, val) => acc - val, annualValue) : 0;
+    return roundMillion(quarter4Value ?? 0);
   }
 
   public async getIncomeStatements(equities: Stock[]) {
@@ -74,6 +126,8 @@ class EdgarClient {
 
       // Some SEC entries use an alternative key for Revenue and Net Income
       const {
+        CostOfGoodsAndServicesSold: GrossCostsAlt1,
+        CostOfRevenue: GrossCostsAlt2,
         GrossProfit,
         NetIncomeLoss: NetIncomeAlt1,
         NetIncomeLossAvailableToCommonStockholdersBasic: NetIncomeAlt2,
@@ -86,6 +140,8 @@ class EdgarClient {
       } = usGAAP;
 
       const concatUSD = [
+        ...(GrossCostsAlt1 && GrossCostsAlt1.units && GrossCostsAlt1.units.USD ? GrossCostsAlt1.units.USD : []),
+        ...(GrossCostsAlt2 && GrossCostsAlt2.units && GrossCostsAlt2.units.USD ? GrossCostsAlt2.units.USD : []),
         ...(GrossProfit && GrossProfit.units && GrossProfit.units.USD ? GrossProfit.units.USD : []),
         ...(NetIncomeAlt1 && NetIncomeAlt1.units && NetIncomeAlt1.units.USD ? NetIncomeAlt1.units.USD : []),
         ...(NetIncomeAlt2 && NetIncomeAlt2.units && NetIncomeAlt2.units.USD ? NetIncomeAlt2.units.USD : []),
@@ -100,17 +156,20 @@ class EdgarClient {
       const dates = EdgarClient.getLatestQuarterEndDates(concatUSD);
 
       const formattedIncomeStatements = dates
-        .map((date) => ({ date, symbol }))
-        .map((data) => ({ ...data, gross_profit: EdgarClient.getQuarterlyValue(data.date, GrossProfit) }))
-        .map((data) => ({ ...data, net_income: EdgarClient.getQuarterlyValue(data.date, NetIncomeAlt1) }))
-        .map((data) => ({ ...data, net_income: data.net_income === '0' ? EdgarClient.getQuarterlyValue(data.date, NetIncomeAlt2) : data.net_income }))
-        .map((data) => ({ ...data, net_income: data.net_income === '0' ? EdgarClient.getQuarterlyValue(data.date, NetIncomeAlt3) : data.net_income }))
-        .map((data) => ({ ...data, operating_income: EdgarClient.getQuarterlyValue(data.date, OperatingIncome) }))
-        .map((data) => ({ ...data, revenue: EdgarClient.getQuarterlyValue(data.date, RevenuesAlt1) }))
-        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.date, RevenuesAlt2) : data.revenue }))
-        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.date, RevenuesAlt3) : data.revenue }))
-        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.date, RevenuesAlt4) : data.revenue }));
-
+        .map(({ frame, end }) => ({ date: end, frame, symbol }))
+        .map((data) => ({ ...data, revenue: EdgarClient.getQuarterlyValue(data.frame, RevenuesAlt1) }))
+        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.frame, RevenuesAlt2) : data.revenue }))
+        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.frame, RevenuesAlt3) : data.revenue }))
+        .map((data) => ({ ...data, revenue: data.revenue === '0' ? EdgarClient.getQuarterlyValue(data.frame, RevenuesAlt4) : data.revenue }))
+        .map((data) => ({ ...data, gross_profit: EdgarClient.getQuarterlyValue(data.frame, GrossProfit) }))
+        .map((data) => ({ ...data, gross_profit: data.gross_profit === '0' ? EdgarClient.getQuarterlyGrossProfit(data.frame, data.revenue, GrossCostsAlt1) : data.gross_profit }))
+        .map((data) => ({ ...data, gross_profit: data.gross_profit === '0' ? EdgarClient.getQuarterlyGrossProfit(data.frame, data.revenue, GrossCostsAlt2) : data.gross_profit }))
+        .map((data) => ({ ...data, net_income: EdgarClient.getQuarterlyValue(data.frame, NetIncomeAlt1) }))
+        .map((data) => ({ ...data, net_income: data.net_income === '0' ? EdgarClient.getQuarterlyValue(data.frame, NetIncomeAlt2) : data.net_income }))
+        .map((data) => ({ ...data, net_income: data.net_income === '0' ? EdgarClient.getQuarterlyValue(data.frame, NetIncomeAlt3) : data.net_income }))
+        .map((data) => ({ ...data, operating_income: EdgarClient.getQuarterlyValue(data.frame, OperatingIncome) }))
+        .map(({ frame, ...data }) => data);
+      
       incomeStatements = [...incomeStatements, ...formattedIncomeStatements];
     }
 

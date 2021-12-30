@@ -15,6 +15,8 @@ export interface EdgarDocumentEntityInformation {
 }
 
 export interface EdgarUSGAAP {
+  CostOfGoodsAndServicesSold?: EdgarLabel;
+  CostOfRevenue?: EdgarLabel;
   GrossProfit?: EdgarLabel;
   NetIncomeLoss?: EdgarLabel;
   NetIncomeLossAvailableToCommonStockholdersBasic?: EdgarLabel;
