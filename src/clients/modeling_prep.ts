@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 
-import { FETCH_SLEEP_TIMEOUT_MS, MODELING_PREP_CURRENT_PRICES_CHUNK_SIZE, MODELING_PREP_HISTORIC_PRICES_CHUNK_SIZE, MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE } from '../constants/configs';
+import { FETCH_SLEEP_TIMEOUT_MS, MODELING_PREP_CURRENT_PRICES_CHUNK_SIZE, MODELING_PREP_INCOME_STATEMENT_CHUNK_SIZE } from '../constants/configs';
 import { FINANCIAL_STATEMENTS_START_YEAR, HISTORIC_PRICES_FROM_DATE } from '../constants/dates';
 
 import { chunkList, sleep, roundMillion, roundRatio } from '../utils';
@@ -11,7 +11,6 @@ import type { ExtendedIncomeStatementPayload, Stock, StockPricePayload, CurrentS
 import {
   ModelingPrepIncomeStatements,
   ModelingPrepFinancialsResponse,
-  ModelingPrepHistoricPriceResponse,
   ModelingPrepHistoricPrices,
   ModelingPrepProfile,
   ModelingPrepQuote,
@@ -231,18 +230,15 @@ class ModelingPrepClient {
       .filter(({ exchangeType }) => exchangeType === 'nyse' || exchangeType === 'nasdaq')
       .map(({ symbol }) => symbol);
 
-    const equitySymbolChunks = chunkList(equities, MODELING_PREP_HISTORIC_PRICES_CHUNK_SIZE); // API limits calls to 5 stock symbols at a time
+    for (let i = 0; i < equities.length; i += 1) {
+      const uri = `${this.host}${this.endpoints.historicPrice}${equities[i]}?from=${HISTORIC_PRICES_FROM_DATE}&apikey=${this.apiKey}`;
 
-    for (let i = 0; i < equitySymbolChunks.length; i += 1) {
-      const currentChunk = equitySymbolChunks[i];
-      const uri = `${this.host}${this.endpoints.historicPrice}${currentChunk.join(',')}?from=${HISTORIC_PRICES_FROM_DATE}&apikey=${this.apiKey}`;
-
-      let apiResponse: ModelingPrepHistoricPriceResponse;
+      let apiResponse: ModelingPrepHistoricPrices;
       try {
         await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
         console.log(`Fetching historic prices from: ${uri}`); // eslint-disable-line
         const rawResponse = await fetch(uri); // eslint-disable-line
-        apiResponse = await rawResponse.json() as ModelingPrepHistoricPriceResponse; // eslint-disable-line
+        apiResponse = await rawResponse.json() as ModelingPrepHistoricPrices; // eslint-disable-line
       } catch (err) {
         try {
           await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
@@ -250,17 +246,12 @@ class ModelingPrepClient {
           const response = await fetch(uri); // eslint-disable-line
           apiResponse = await response.json(); // eslint-disable-line
         } catch (err2) {
-          console.warn(`Unable to get historic prices for ${currentChunk}`); // eslint-disable-line
+          console.warn(`Unable to get historic prices for ${equities[i]}`); // eslint-disable-line
           return [];
         }
       }
 
-      const { historicalStockList } = apiResponse;
-      let formattedHistoricStockPrices: StockPricePayload[] = [];
-      if (Array.isArray(historicalStockList)) {
-        formattedHistoricStockPrices = ModelingPrepClient.formatHistoricStockPrices(historicalStockList, stocks);
-      }
-
+      const formattedHistoricStockPrices = ModelingPrepClient.formatHistoricStockPrices([apiResponse], stocks);
       historicStockPrices = [...historicStockPrices, ...formattedHistoricStockPrices];
     }
 
