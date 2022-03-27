@@ -65,8 +65,8 @@ const stockPriceModel = {
     const equities = stocks.filter(({ exchangeType }) => ['nasdaq', 'nyse'].includes(exchangeType));
     const indexes = stocks.filter(({ exchangeType }) => exchangeType === 'index');
 
-    const equityProfiles = await finnhubClient.getEquityProfiles(equities);
     const indexProfiles = await modelingPrepClient.getIndexProfiles(indexes);
+    const equityProfiles = await finnhubClient.getEquityProfiles(equities);
     const currentEquityPrices = await alpacaClient.getCurrentEquityPrices(equities);
     const historicStockPrices = await this.getHistoric(stocks);
     const fullStockPrices = stocks.map((stock) => {
