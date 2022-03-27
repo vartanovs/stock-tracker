@@ -163,7 +163,7 @@ class ModelingPrepClient {
 
       let apiResponse: ModelingPrepQuote[];
       try {
-        await sleep(FETCH_SLEEP_TIMEOUT_MS); // eslint-disable-line
+        await sleep(FETCH_SLEEP_TIMEOUT_MS * 25); // eslint-disable-line
         console.log(`Fetching current index prices from: ${uri}`); // eslint-disable-line
         const rawResponse = await fetch(uri); // eslint-disable-line
         apiResponse = await rawResponse.json() as ModelingPrepQuote[]; // eslint-disable-line
