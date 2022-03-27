@@ -11,7 +11,7 @@ export const chunkList = <T>(list: T[], chunkSize = MODELING_PREP_INCOME_STATEME
 
 export const roundMillion = (inputNumber: number | string) => {
   const num = Number(inputNumber);
-  return String(Math.round(num / 1000) / 1000);
+  return isNaN(num) ? '0' : String(Math.round(num / 1000) / 1000);
 };
 
 export const roundRatio = (inputNumber: string) =>  {
